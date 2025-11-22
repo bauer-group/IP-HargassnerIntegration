@@ -1,15 +1,28 @@
-# Hargassner Pellet Boiler Integration for Home Assistant
+<div align="center">
+  <img src="custom_components/bauergroup_hargassnerintegration/icon.png" alt="Hargassner Integration Logo" width="200"/>
 
-[![GitHub Release](https://img.shields.io/github/release/bauer-group/IP-HargassnerIntegration.svg?style=flat-square)](https://github.com/bauer-group/IP-HargassnerIntegration/releases)
-[![hacs_badge](https://img.shields.io/badge/HACS-Custom-orange.svg?style=flat-square)](https://github.com/custom-components/hacs)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square)](https://opensource.org/licenses/MIT)
-[![GitHub Issues](https://img.shields.io/github/issues/bauer-group/IP-HargassnerIntegration.svg?style=flat-square)](https://github.com/bauer-group/IP-HargassnerIntegration/issues)
+  # Hargassner Pellet Boiler Integration
+  ### for Home Assistant
 
-> Modern, professional Home Assistant integration for Hargassner pellet boilers with real-time telnet monitoring.
+  [![Home Assistant](https://img.shields.io/badge/Home%20Assistant-Compatible-blue?style=for-the-badge&logo=home-assistant)](https://www.home-assistant.io/)
+
+  [![HACS](https://img.shields.io/badge/HACS-Custom-orange.svg?style=for-the-badge)](https://github.com/hacs/integration)
+  [![License](https://img.shields.io/github/license/bauer-group/IP-HargassnerIntegration?style=for-the-badge)](LICENSE)
+
+  [![GitHub Release](https://img.shields.io/github/v/release/bauer-group/IP-HargassnerIntegration?style=for-the-badge&logo=github)](https://github.com/bauer-group/IP-HargassnerIntegration/releases)
+  [![GitHub Issues](https://img.shields.io/github/issues/bauer-group/IP-HargassnerIntegration?style=for-the-badge)](https://github.com/bauer-group/IP-HargassnerIntegration/issues)
+  [![GitHub Stars](https://img.shields.io/github/stars/bauer-group/IP-HargassnerIntegration?style=for-the-badge)](https://github.com/bauer-group/IP-HargassnerIntegration/stargazers)
+
+  **Modern, professional Home Assistant integration for Hargassner pellet boilers with real-time telnet monitoring.**
+
+  [Features](#-features) • [Installation](#-installation) • [Configuration](#️-configuration) • [Sensors](#-available-sensors) • [Support](#support)
+</div>
+
+---
 
 ## ✨ Features
 
-- 🔥 **Real-time monitoring** of 228 boiler parameters via telnet
+- 🔥 **Real-time monitoring** of 228 boiler parameters via direct connection
 - 🔄 **Automatic reconnection** with exponential backoff strategy
 - 🔒 **Thread-safe** async telnet client with background processing
 - 🛡️ **Robust error handling** with custom exception types
