@@ -86,7 +86,7 @@ Then restart Home Assistant.
 - 🔌 **Connection** - Connected/Disconnected
 - 🔥 **Boiler State** - Off, Ignition, Full Firing, etc.
 - ⚠️ **Operation Status** - OK / Error messages
-- ⚡ **Energy Consumption** - kWh (calculated from pellets)
+- ⚡ **Heat Output** (Wärmemenge) - kWh (calculated from pellet consumption with configurable efficiency)
 
 **Core Parameters (13):**
 
@@ -126,10 +126,33 @@ All STANDARD sensors **plus** 211 additional parameters:
 
 ## Energy Dashboard Integration
 
-The integration automatically creates an energy sensor compatible with Home Assistant's Energy Dashboard:
+The integration automatically creates a heat output sensor compatible with Home Assistant's Energy Dashboard:
 
 1. Go to **Settings** → **Dashboards** → **Energy**
-2. Add the **Hargassner Energy Consumption** sensor to track your pellet heating energy usage
+2. Add the **Hargassner Heat Output** (Wärmemenge) sensor to track your pellet heating energy usage
+
+### Customizing Energy Calculation
+
+The heat output is calculated using the formula:
+
+```
+Heat (kWh) = Pellets (kg) × Energy Content (kWh/kg) × Efficiency (%)
+```
+
+You can customize both values in the integration options:
+
+- **Pellet Energy Content**: Default 4.8 kWh/kg (range: 3.0-6.0)
+- **Boiler Efficiency**: Default 90% (range: 50-100%)
+
+**Example**: With 100 kg pellets consumed, 4.8 kWh/kg energy content, and 90% efficiency:
+```
+100 kg × 4.8 kWh/kg × 0.90 = 432 kWh
+```
+
+To adjust these values:
+1. Go to **Settings** → **Devices & Services**
+2. Find your Hargassner integration
+3. Click **Configure** → Adjust values as needed
 
 ## Troubleshooting
 

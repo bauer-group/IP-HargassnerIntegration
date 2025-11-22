@@ -233,10 +233,14 @@ hargassner_pellet/
    - Automatic unit mapping (°C → UnitOfTemperature.CELSIUS)
    - Device class and state class configuration
 
-5. **HargassnerEnergySensor**
-   - Calculates energy from pellet consumption
-   - Formula: `kg * 4.8 = kWh`
+5. **HargassnerEnergySensor** (Wärmemenge)
+   - Calculates heat output from pellet consumption
+   - Formula: `kg * pellet_energy_kwh_per_kg * (efficiency_percent / 100)`
+   - Configurable pellet energy (default: 4.8 kWh/kg)
+   - Configurable efficiency (default: 90%)
+   - Example: 100 kg * 4.8 kWh/kg * 0.90 = 432 kWh
    - Energy dashboard compatible
+   - Attributes show calculation parameters
 
 **Sensor Sets:**
 

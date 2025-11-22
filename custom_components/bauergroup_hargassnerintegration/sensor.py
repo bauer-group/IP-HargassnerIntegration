@@ -25,12 +25,15 @@ from .const import (
     BOILER_STATES_DE,
     BOILER_STATES_EN,
     CONF_DEVICE_NAME,
+    CONF_EFFICIENCY,
     CONF_LANGUAGE,
+    CONF_PELLET_ENERGY,
     CONF_SENSOR_SET,
+    DEFAULT_EFFICIENCY,
+    DEFAULT_PELLET_ENERGY,
     DOMAIN,
     ERROR_CODES,
     LANGUAGE_DE,
-    PELLET_ENERGY_FACTOR,
     SENSOR_SET_FULL,
     STATE_CONNECTED,
     STATE_DISCONNECTED,
@@ -391,18 +394,37 @@ class HargassnerEnergySensor(HargassnerBaseSensor):
     ) -> None:
         """Initialize energy sensor."""
         super().__init__(coordinator, entry)
-        self._attr_name = "Energy Consumption" if language.upper() == "EN" else "Energieverbrauch"
+        self._attr_name = "Heat Output" if language.upper() == "EN" else "Wärmemenge"
         self._attr_unique_id = f"{entry.entry_id}_energy"
         self._language = language
+        self._entry = entry
 
     @property
     def native_value(self) -> float | None:
-        """Return energy consumption in kWh."""
+        """Return heat output in kWh (calculated from pellet consumption with efficiency)."""
         pellet_data = self.coordinator.data.get("Verbrauchszähler")
         if pellet_data:
             try:
                 pellets_kg = float(pellet_data.get("value", 0))
-                return pellets_kg * PELLET_ENERGY_FACTOR
+
+                # Get configuration values
+                pellet_energy = self._entry.data.get(CONF_PELLET_ENERGY, DEFAULT_PELLET_ENERGY)
+                efficiency = self._entry.data.get(CONF_EFFICIENCY, DEFAULT_EFFICIENCY)
+
+                # Calculate: kg * kWh/kg * efficiency%
+                return pellets_kg * pellet_energy * (efficiency / 100.0)
             except (ValueError, TypeError):
                 pass
         return None
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        """Return additional attributes."""
+        pellet_energy = self._entry.data.get(CONF_PELLET_ENERGY, DEFAULT_PELLET_ENERGY)
+        efficiency = self._entry.data.get(CONF_EFFICIENCY, DEFAULT_EFFICIENCY)
+
+        return {
+            "pellet_energy_kwh_per_kg": pellet_energy,
+            "efficiency_percent": efficiency,
+            "calculation": f"{pellet_energy} kWh/kg × {efficiency}% efficiency",
+        }

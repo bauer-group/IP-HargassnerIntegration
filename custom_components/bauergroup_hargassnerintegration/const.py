@@ -9,6 +9,8 @@ CONF_FIRMWARE: Final = "firmware"
 CONF_DEVICE_NAME: Final = "device_name"
 CONF_LANGUAGE: Final = "language"
 CONF_SENSOR_SET: Final = "sensor_set"
+CONF_PELLET_ENERGY: Final = "pellet_energy_kwh_per_kg"
+CONF_EFFICIENCY: Final = "efficiency_percent"
 
 # Language options
 LANGUAGE_EN: Final = "EN"
@@ -94,5 +96,6 @@ FIRMWARE_VERSIONS: Final = [
     "V14_1HAR_q1",
 ]
 
-# Energy calculation constant (kg pellets to kWh)
-PELLET_ENERGY_FACTOR: Final = 4.8  # kWh per kg
+# Energy calculation defaults
+DEFAULT_PELLET_ENERGY: Final = 4.8  # kWh per kg (Heizwert)
+DEFAULT_EFFICIENCY: Final = 90  # % Wirkungsgrad

@@ -110,10 +110,10 @@ Diese Nachricht hat **138 Werte** und wird korrekt geparst zu:
 
 **Immer verfügbar (4):**
 
-1. **Verbindungsstatus** - connected/disconnected
+1. **Verbindung** - Verbunden/Getrennt
 2. **Kesselzustand** - Leistungsbrand, Zündung, Aus, etc.
 3. **Betriebsstatus** - OK / Fehlermeldungen
-4. **Energieverbrauch** - kWh (berechnet aus Pelletverbrauch)
+4. **Wärmemenge** - kWh (berechnet aus Pelletverbrauch mit Wirkungsgrad)
 
 **Standard-Parameter (13):**
 
@@ -159,6 +159,34 @@ Bei Auswahl von **FULL** werden alle 224 Parameter aus dem Firmware-Template als
 #### Gesamt: 228 Sensoren
 
 Alle Sensoren verwenden ihre Original-Namen aus dem Firmware-Template (z.B. "HK1_VL", "O2", "M1_Kes_Ladepump").
+
+## Wärmeberechnung anpassen
+
+Die Wärmemenge wird berechnet nach:
+
+```
+Wärme (kWh) = Pellets (kg) × Heizwert (kWh/kg) × Wirkungsgrad (%)
+```
+
+**Standard-Werte:**
+- Heizwert: 4,8 kWh/kg
+- Wirkungsgrad: 90%
+
+**Beispiel**: 100 kg Pellets verbraucht
+```
+100 kg × 4,8 kWh/kg × 0,90 = 432 kWh
+```
+
+### Werte anpassen
+
+1. **Einstellungen** → **Geräte & Dienste**
+2. Deine Hargassner-Integration finden
+3. **Konfigurieren** klicken
+4. Werte anpassen:
+   - **Heizwert Pellets**: 3,0 - 6,0 kWh/kg
+   - **Wirkungsgrad**: 50 - 100%
+
+Die Werte werden als Attribute am Sensor angezeigt.
 
 ## Hauptmerkmale
 

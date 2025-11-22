@@ -15,9 +15,13 @@ from homeassistant.helpers import config_validation as cv
 
 from .const import (
     CONF_DEVICE_NAME,
+    CONF_EFFICIENCY,
     CONF_FIRMWARE,
     CONF_LANGUAGE,
+    CONF_PELLET_ENERGY,
     CONF_SENSOR_SET,
+    DEFAULT_EFFICIENCY,
+    DEFAULT_PELLET_ENERGY,
     DOMAIN,
     FIRMWARE_VERSIONS,
     LANGUAGE_DE,
@@ -158,6 +162,12 @@ class HargassnerOptionsFlow(config_entries.OptionsFlow):
         current_sensor_set = self.config_entry.data.get(
             CONF_SENSOR_SET, SENSOR_SET_STANDARD
         )
+        current_pellet_energy = self.config_entry.data.get(
+            CONF_PELLET_ENERGY, DEFAULT_PELLET_ENERGY
+        )
+        current_efficiency = self.config_entry.data.get(
+            CONF_EFFICIENCY, DEFAULT_EFFICIENCY
+        )
 
         data_schema = vol.Schema(
             {
@@ -167,6 +177,16 @@ class HargassnerOptionsFlow(config_entries.OptionsFlow):
                 vol.Optional(CONF_SENSOR_SET, default=current_sensor_set): vol.In(
                     [SENSOR_SET_STANDARD, SENSOR_SET_FULL]
                 ),
+                vol.Optional(
+                    CONF_PELLET_ENERGY,
+                    default=current_pellet_energy,
+                    description={"suggested_value": current_pellet_energy}
+                ): vol.All(vol.Coerce(float), vol.Range(min=3.0, max=6.0)),
+                vol.Optional(
+                    CONF_EFFICIENCY,
+                    default=current_efficiency,
+                    description={"suggested_value": current_efficiency}
+                ): vol.All(vol.Coerce(int), vol.Range(min=50, max=100)),
             }
         )
 
