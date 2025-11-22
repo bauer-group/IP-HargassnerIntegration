@@ -70,7 +70,6 @@ async def async_setup_entry(
     """Set up Hargassner sensors from a config entry."""
     coordinator: HargassnerDataUpdateCoordinator = hass.data[DOMAIN][entry.entry_id]
 
-    device_name = entry.data.get(CONF_DEVICE_NAME, "Hargassner")
     sensor_set = entry.data.get(CONF_SENSOR_SET, "STANDARD")
     language = entry.data.get(CONF_LANGUAGE, "EN")
 
@@ -129,7 +128,7 @@ async def async_setup_entry(
                     coordinator,
                     entry,
                     param_name,
-                    f"{device_name} {display_name}",
+                    display_name,  # No device prefix - handled by has_entity_name
                     device_class,
                     state_class,
                     None,  # icon
@@ -144,7 +143,7 @@ async def async_setup_entry(
                     coordinator,
                     entry,
                     key,
-                    f"{device_name} {name}",
+                    name,  # No device prefix - handled by has_entity_name
                     device_class,
                     state_class,
                     icon,
