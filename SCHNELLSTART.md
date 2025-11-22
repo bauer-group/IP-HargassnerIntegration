@@ -47,7 +47,19 @@ bauergroup_hargassnerintegration/
 
 ## Installation in Home Assistant
 
-### Schritt 1: Kopieren
+### Methode 1: HACS (Empfohlen)
+
+1. Öffne HACS in Home Assistant
+2. Gehe zu "Integrationen"
+3. Klicke auf die drei Punkte oben rechts
+4. Wähle "Benutzerdefinierte Repositorys"
+5. Füge `https://github.com/bauer-group/IP-HargassnerIntegration` hinzu und wähle "Integration" als Kategorie
+6. Klicke auf "Installieren"
+7. Starte Home Assistant neu
+
+### Methode 2: Manuelle Installation
+
+#### Schritt 1: Kopieren
 
 Kopiere den Ordner `custom_components/bauergroup_hargassnerintegration` nach:
 
@@ -60,11 +72,11 @@ Beispiel:
 /config/custom_components/bauergroup_hargassnerintegration/
 ```
 
-### Schritt 2: Home Assistant Neustart
+#### Schritt 2: Home Assistant Neustart
 
 Starte Home Assistant neu.
 
-### Schritt 3: Integration hinzufügen
+### Integration hinzufügen
 
 1. Gehe zu **Einstellungen** → **Geräte & Dienste**
 2. Klicke auf **+ Integration hinzufügen**
@@ -75,10 +87,9 @@ Starte Home Assistant neu.
    - **Gerätename:** z.B. `Hargassner`
    - **Sprache:** `DE` (Deutsch)
    - **Sensor-Set:** `STANDARD` oder `FULL`
+5. Klicke auf **Absenden**
 
-### Schritt 4: Fertig!
-
-Die Sensoren werden automatisch erstellt.
+Die Sensoren werden automatisch erstellt!
 
 ## Deine Beispiel-Daten testen
 

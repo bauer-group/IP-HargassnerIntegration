@@ -40,7 +40,7 @@ Modern, professional Home Assistant integration for Hargassner pellet boilers wi
 
 ## Configuration
 
-### Via UI (Recommended)
+### Via UI (recommended)
 
 1. Go to **Settings** → **Devices & Services**
 2. Click **+ Add Integration**
@@ -52,7 +52,7 @@ Modern, professional Home Assistant integration for Hargassner pellet boilers wi
    - **Language**: Choose language for state translations (EN/DE)
    - **Sensor Set**: Standard (basic sensors) or Full (all available sensors)
 
-### Via YAML (Legacy, not recommended)
+### Via YAML (not recommended)
 
 ```yaml
 # configuration.yaml
