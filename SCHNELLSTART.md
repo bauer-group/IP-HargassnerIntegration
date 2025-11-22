@@ -185,48 +185,12 @@ Dann in Home Assistant → **Einstellungen** → **System** → **Protokolle** n
 - **[DEVELOPMENT.md](docs/DEVELOPMENT.md)** - Entwickler-Guide
 - **[PROJECT_SUMMARY.md](PROJECT_SUMMARY.md)** - Projekt-Zusammenfassung
 
-## Verbesserungen zum alten Code
-
-### ✅ Was ist jetzt besser?
-
-1. **Moderne Architektur**
-   - Alt: Alles in einer Datei vermischt
-   - Neu: Saubere Trennung (src/, coordinator, config_flow)
-
-2. **Config Flow**
-   - Alt: Nur YAML-Konfiguration
-   - Neu: GUI-basiert mit Validierung
-
-3. **Fehlerbehandlung**
-   - Alt: Crash bei Verbindungsverlust
-   - Neu: Auto-Reconnect, graceful degradation
-
-4. **Encoding**
-   - Alt: Hardcoded UTF-8, � Zeichen
-   - Neu: Multi-Encoding Support, automatische Erkennung
-
-5. **Thread-Safety**
-   - Alt: Keine Locks, Race Conditions möglich
-   - Neu: Async Locks, vollständig thread-safe
-
-6. **Performance**
-   - Alt: Ineffiziente Message-Verarbeitung
-   - Neu: Nur neueste Message, optimiert
-
-7. **Dokumentation**
-   - Alt: Kaum vorhanden
-   - Neu: 4 ausführliche Docs (>100 Seiten!)
-
 ## Support
 
 Bei Fragen oder Problemen:
 1. Lies die Dokumentation
 2. Prüfe die Logs
 3. Erstelle ein GitHub Issue (wenn du das Projekt auf GitHub veröffentlichst)
-
-## Viel Erfolg! 🚀
-
-Dein neues Custom Component ist produktionsreif und folgt allen Home Assistant Best Practices.
 
 ---
 **Erstellt:** 2025-11-22
