@@ -120,6 +120,16 @@ class HargassnerConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 vol.Optional(CONF_SENSOR_SET, default=SENSOR_SET_STANDARD): vol.In(
                     [SENSOR_SET_STANDARD, SENSOR_SET_FULL]
                 ),
+                vol.Optional(
+                    CONF_PELLET_ENERGY,
+                    default=DEFAULT_PELLET_ENERGY,
+                    description={"suggested_value": DEFAULT_PELLET_ENERGY}
+                ): vol.All(vol.Coerce(float), vol.Range(min=3.0, max=6.0)),
+                vol.Optional(
+                    CONF_EFFICIENCY,
+                    default=DEFAULT_EFFICIENCY,
+                    description={"suggested_value": DEFAULT_EFFICIENCY}
+                ): vol.All(vol.Coerce(int), vol.Range(min=50, max=100)),
             }
         )
 

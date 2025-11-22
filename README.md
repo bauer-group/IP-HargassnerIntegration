@@ -80,6 +80,8 @@ Then restart Home Assistant.
 | **Device Name** | Friendly name | `Hargassner` |
 | **Language** | UI language (EN/DE) | `DE` |
 | **Sensor Set** | STANDARD or FULL | `FULL` |
+| **Pellet Energy** | Energy content (kWh/kg) | `4.8` (default) |
+| **Efficiency** | Boiler efficiency (%) | `90` (default) |
 
 ### Sensor Sets Comparison
 

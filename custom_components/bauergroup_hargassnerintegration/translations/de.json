@@ -9,7 +9,13 @@
           "firmware": "Firmware-Version",
           "device_name": "Gerätename",
           "language": "Sprache",
-          "sensor_set": "Sensor-Set"
+          "sensor_set": "Sensor-Set",
+          "pellet_energy_kwh_per_kg": "Heizwert Pellets (kWh/kg)",
+          "efficiency_percent": "Wirkungsgrad (%)"
+        },
+        "data_description": {
+          "pellet_energy_kwh_per_kg": "Heizwert der Pellets in kWh pro kg (Standard: 4.8)",
+          "efficiency_percent": "Wirkungsgrad der Anlage in Prozent (Standard: 90)"
         }
       }
     },

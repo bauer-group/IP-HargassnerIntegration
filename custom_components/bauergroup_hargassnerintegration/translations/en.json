@@ -9,7 +9,13 @@
           "firmware": "Firmware Version",
           "device_name": "Device Name",
           "language": "Language",
-          "sensor_set": "Sensor Set"
+          "sensor_set": "Sensor Set",
+          "pellet_energy_kwh_per_kg": "Pellet Energy (kWh/kg)",
+          "efficiency_percent": "Efficiency (%)"
+        },
+        "data_description": {
+          "pellet_energy_kwh_per_kg": "Energy content of pellets in kWh per kg (Default: 4.8)",
+          "efficiency_percent": "Boiler efficiency in percent (Default: 90)"
         }
       }
     },
