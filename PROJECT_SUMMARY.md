@@ -200,7 +200,7 @@ This message contains 138 values corresponding to:
 ## Configuration Example
 
 ```yaml
-# Via GUI (recommended), or legacy YAML:
+# Via GUI (recommended), or YAML:
 hargassner_pellet:
   host: 192.168.1.100
   firmware: V14_1HAR_q1
@@ -286,12 +286,6 @@ Energy sensor automatically created:
 - **DEVELOPMENT.md** - Developer workflow
 - **CONTRIBUTING.md** - Contribution guidelines
 - **PROJECT_SUMMARY.md** - This file
-
-## Credits
-
-- **Original Concept:** Based on nano_pk integration
-- **Complete Rewrite:** Modern architecture, professional standards
-- **Inspired By:** Home Assistant best practices
 
 ## License
 

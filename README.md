@@ -209,10 +209,6 @@ Contributions are welcome! Please read [docs/CONTRIBUTING.md](docs/CONTRIBUTING.
 
 MIT License - see [LICENSE](LICENSE) file for details.
 
-## Credits
-
-Based on the original nano_pk integration, completely rewritten with modern Home Assistant best practices.
-
 ## Support
 
 - [Issue Tracker](https://github.com/bauer-group/IP-HargassnerIntegration/issues)
