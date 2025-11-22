@@ -4,6 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>HACS Logo Generator - Hargassner Integration</title>
+    <!-- Material Design Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@mdi/font@7.4.47/css/materialdesignicons.min.css">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -18,7 +22,8 @@
             padding: 30px;
             border-radius: 10px;
             box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-            max-width: 600px;
+            max-width: 700px;
+            width: 100%;
         }
         h1 {
             color: #333;
@@ -44,6 +49,9 @@
             border-radius: 4px;
             font-size: 14px;
         }
+        #iconSearch {
+            margin-bottom: 10px;
+        }
         button {
             background: #FF5722;
             color: white;
@@ -66,6 +74,17 @@
             border-radius: 4px;
             margin: 15px 0;
         }
+        .icon-preview {
+            display: inline-block;
+            margin-right: 5px;
+            font-size: 18px;
+        }
+        #iconLibrary {
+            margin-bottom: 10px;
+        }
+        .hidden {
+            display: none;
+        }
     </style>
 </head>
 <body>
@@ -74,18 +93,37 @@
 
         <div class="info">
             <strong>Info:</strong> Dieses Tool erstellt ein professionelles Logo für deine HACS Integration.
-            Die Datei wird als "logo.png" (256x256px) heruntergeladen.
+            Die Datei wird als "logo.png" heruntergeladen. Wähle Icons aus Material Design Icons oder Font Awesome!
         </div>
 
         <div class="controls">
-            <label>Icon Design:</label>
-            <select id="iconType">
-                <option value="fire">🔥 Feuer (Fire)</option>
-                <option value="fireplace">🏠 Kamin (Fireplace)</option>
-                <option value="flame">🔥 Flamme (Flame)</option>
-                <option value="radiator">📻 Heizkörper (Radiator)</option>
-                <option value="text">H Text Logo</option>
+            <label>Icon Library:</label>
+            <select id="iconLibrary">
+                <option value="custom">🎨 Custom Icons (Gezeichnet)</option>
+                <option value="mdi">Material Design Icons (MDI)</option>
+                <option value="fa">Font Awesome (FA)</option>
             </select>
+
+            <div id="customIconSection">
+                <label>Icon Design:</label>
+                <select id="iconType">
+                    <option value="fire">🔥 Feuer (Fire)</option>
+                    <option value="fireplace">🏠 Kamin (Fireplace)</option>
+                    <option value="flame">🔥 Flamme (Flame)</option>
+                    <option value="radiator">📻 Heizkörper (Radiator)</option>
+                    <option value="text">H Text Logo</option>
+                </select>
+            </div>
+
+            <div id="libraryIconSection" class="hidden">
+                <label>Icon suchen:</label>
+                <input type="text" id="iconSearch" placeholder="z.B. fire, heating, boiler, flame...">
+
+                <label>Icon auswählen:</label>
+                <select id="iconSelect" size="10">
+                    <!-- Will be populated dynamically -->
+                </select>
+            </div>
 
             <label>Hintergrundfarbe:</label>
             <input type="color" id="bgColor" value="#FF5722">
@@ -114,17 +152,180 @@
         const canvas = document.getElementById('logoCanvas');
         const ctx = canvas.getContext('2d');
 
+        // Icon libraries data
+        const mdiIcons = {
+            // Heating & Fire
+            'mdi-fire': 'Fire',
+            'mdi-fire-circle': 'Fire Circle',
+            'mdi-fire-alert': 'Fire Alert',
+            'mdi-fire-off': 'Fire Off',
+            'mdi-fireplace': 'Fireplace',
+            'mdi-fireplace-off': 'Fireplace Off',
+            'mdi-flame': 'Flame',
+            'mdi-flame-circle': 'Flame Circle',
+            'mdi-radiator': 'Radiator',
+            'mdi-radiator-disabled': 'Radiator Disabled',
+            'mdi-radiator-off': 'Radiator Off',
+            // Heating systems
+            'mdi-heat-pump': 'Heat Pump',
+            'mdi-heat-pump-outline': 'Heat Pump Outline',
+            'mdi-heat-wave': 'Heat Wave',
+            'mdi-heating-coil': 'Heating Coil',
+            'mdi-home-thermometer': 'Home Thermometer',
+            'mdi-home-thermometer-outline': 'Home Thermometer Outline',
+            'mdi-thermostat': 'Thermostat',
+            'mdi-thermostat-box': 'Thermostat Box',
+            // Boiler & Energy
+            'mdi-water-boiler': 'Water Boiler',
+            'mdi-water-boiler-alert': 'Water Boiler Alert',
+            'mdi-water-boiler-auto': 'Water Boiler Auto',
+            'mdi-water-boiler-off': 'Water Boiler Off',
+            'mdi-gas-burner': 'Gas Burner',
+            'mdi-stove': 'Stove',
+            // Temperature
+            'mdi-thermometer': 'Thermometer',
+            'mdi-thermometer-high': 'Thermometer High',
+            'mdi-thermometer-low': 'Thermometer Low',
+            'mdi-thermometer-alert': 'Thermometer Alert',
+            'mdi-temperature-celsius': 'Temperature Celsius',
+            // Energy & Power
+            'mdi-lightning-bolt': 'Lightning Bolt',
+            'mdi-lightning-bolt-circle': 'Lightning Bolt Circle',
+            'mdi-flash': 'Flash',
+            'mdi-flash-circle': 'Flash Circle',
+            'mdi-power': 'Power',
+            'mdi-meter-electric': 'Meter Electric',
+            'mdi-gauge': 'Gauge',
+            'mdi-gauge-empty': 'Gauge Empty',
+            'mdi-gauge-full': 'Gauge Full',
+        };
+
+        const faIcons = {
+            // Fire & Heating
+            'fa-fire': 'Fire',
+            'fa-fire-flame-curved': 'Fire Flame Curved',
+            'fa-fire-flame-simple': 'Fire Flame Simple',
+            'fa-fire-burner': 'Fire Burner',
+            // Temperature
+            'fa-temperature-high': 'Temperature High',
+            'fa-temperature-low': 'Temperature Low',
+            'fa-temperature-half': 'Temperature Half',
+            'fa-temperature-full': 'Temperature Full',
+            'fa-temperature-empty': 'Temperature Empty',
+            // Energy
+            'fa-bolt': 'Bolt',
+            'fa-bolt-lightning': 'Bolt Lightning',
+            'fa-fire-flame-curved': 'Flame Curved',
+            // House & Home
+            'fa-house-fire': 'House Fire',
+            'fa-house-chimney': 'House Chimney',
+            // Industry
+            'fa-industry': 'Industry',
+            'fa-oil-can': 'Oil Can',
+            // Gauges
+            'fa-gauge': 'Gauge',
+            'fa-gauge-high': 'Gauge High',
+            'fa-gauge-simple': 'Gauge Simple',
+        };
+
+        // Populate icon select
+        function populateIconSelect(library) {
+            const iconSelect = document.getElementById('iconSelect');
+            iconSelect.innerHTML = '';
+
+            const icons = library === 'mdi' ? mdiIcons : faIcons;
+            const prefix = library === 'mdi' ? 'mdi' : 'fa-solid';
+
+            for (const [iconClass, iconName] of Object.entries(icons)) {
+                const option = document.createElement('option');
+                option.value = iconClass;
+                option.textContent = `${iconName}`;
+                option.innerHTML = `<span class="icon-preview ${prefix} ${iconClass}"></span> ${iconName}`;
+                iconSelect.appendChild(option);
+            }
+        }
+
+        // Filter icons based on search
+        function filterIcons() {
+            const searchTerm = document.getElementById('iconSearch').value.toLowerCase();
+            const iconSelect = document.getElementById('iconSelect');
+            const options = iconSelect.getElementsByTagName('option');
+
+            for (let option of options) {
+                const text = option.textContent.toLowerCase();
+                const value = option.value.toLowerCase();
+                if (text.includes(searchTerm) || value.includes(searchTerm)) {
+                    option.style.display = '';
+                } else {
+                    option.style.display = 'none';
+                }
+            }
+        }
+
+        // Toggle between custom and library icons
+        function toggleIconSection() {
+            const library = document.getElementById('iconLibrary').value;
+            const customSection = document.getElementById('customIconSection');
+            const librarySection = document.getElementById('libraryIconSection');
+
+            if (library === 'custom') {
+                customSection.classList.remove('hidden');
+                librarySection.classList.add('hidden');
+            } else {
+                customSection.classList.add('hidden');
+                librarySection.classList.remove('hidden');
+                populateIconSelect(library);
+            }
+
+            generateLogo();
+        }
+
+        // Custom drawing functions
         function drawFire(ctx, x, y, size) {
-            // Outer flame
-            ctx.fillStyle = '#FFA000';
+            const iconColor = document.getElementById('iconColor').value;
+
+            // Multi-layered fire with three flames
+            // Left flame
+            ctx.fillStyle = iconColor;
+            ctx.globalAlpha = 0.7;
+            ctx.beginPath();
+            ctx.moveTo(x - size/3, y);
+            ctx.bezierCurveTo(x - size/2, y - size/3, x - size/3, y - size/2, x - size/4, y - size*0.8);
+            ctx.bezierCurveTo(x - size/5, y - size/2, x - size/6, y - size/3, x - size/3, y);
+            ctx.fill();
+
+            // Center flame (tallest)
+            ctx.globalAlpha = 1.0;
             ctx.beginPath();
             ctx.moveTo(x, y);
             ctx.bezierCurveTo(x - size/3, y - size/2, x - size/2, y - size, x, y - size*1.2);
             ctx.bezierCurveTo(x + size/2, y - size, x + size/3, y - size/2, x, y);
             ctx.fill();
 
-            // Inner flame
-            ctx.fillStyle = '#FFEB3B';
+            // Right flame
+            ctx.globalAlpha = 0.7;
+            ctx.beginPath();
+            ctx.moveTo(x + size/3, y);
+            ctx.bezierCurveTo(x + size/6, y - size/3, x + size/5, y - size/2, x + size/4, y - size*0.8);
+            ctx.bezierCurveTo(x + size/3, y - size/2, x + size/2, y - size/3, x + size/3, y);
+            ctx.fill();
+
+            ctx.globalAlpha = 1.0;
+        }
+
+        function drawFlame(ctx, x, y, size) {
+            const iconColor = document.getElementById('iconColor').value;
+
+            // Single elegant flame
+            ctx.fillStyle = iconColor;
+            ctx.beginPath();
+            ctx.moveTo(x, y);
+            ctx.bezierCurveTo(x - size/3, y - size/2, x - size/2, y - size, x, y - size*1.2);
+            ctx.bezierCurveTo(x + size/2, y - size, x + size/3, y - size/2, x, y);
+            ctx.fill();
+
+            // Inner highlight
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
             ctx.beginPath();
             ctx.moveTo(x, y);
             ctx.bezierCurveTo(x - size/6, y - size/3, x - size/4, y - size/1.5, x, y - size);
@@ -133,8 +334,10 @@
         }
 
         function drawFireplace(ctx, x, y, size) {
-            // House
-            ctx.fillStyle = '#FFFFFF';
+            const iconColor = document.getElementById('iconColor').value;
+
+            // House outline
+            ctx.fillStyle = iconColor;
             ctx.fillRect(x - size/2, y - size/3, size, size/1.5);
 
             // Roof
@@ -144,12 +347,19 @@
             ctx.lineTo(x + size/1.5, y - size/3);
             ctx.fill();
 
-            // Fire in middle
-            drawFire(ctx, x, y + size/6, size/3);
+            // Chimney smoke (small flame on top)
+            ctx.globalAlpha = 0.6;
+            ctx.beginPath();
+            ctx.moveTo(x + size/3, y - size*0.9);
+            ctx.bezierCurveTo(x + size/4, y - size*1.1, x + size/3, y - size*1.2, x + size/3.5, y - size*1.3);
+            ctx.bezierCurveTo(x + size/3, y - size*1.2, x + size/3.5, y - size*1.1, x + size/3, y - size*0.9);
+            ctx.fill();
+            ctx.globalAlpha = 1.0;
         }
 
         function drawRadiator(ctx, x, y, size) {
-            ctx.fillStyle = '#FFFFFF';
+            const iconColor = document.getElementById('iconColor').value;
+            ctx.fillStyle = iconColor;
             const bars = 5;
             const barWidth = size / (bars * 2);
             const barHeight = size * 0.8;
@@ -161,15 +371,68 @@
         }
 
         function drawText(ctx, x, y, size) {
-            ctx.fillStyle = '#FFFFFF';
+            const iconColor = document.getElementById('iconColor').value;
+            ctx.fillStyle = iconColor;
             ctx.font = `bold ${size}px Arial`;
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
             ctx.fillText('H', x, y);
         }
 
-        function generateLogo() {
-            const iconType = document.getElementById('iconType').value;
+        // Draw icon from library (MDI or FA)
+        function drawLibraryIcon(iconClass, library) {
+            return new Promise((resolve, reject) => {
+                const size = parseInt(document.getElementById('size').value);
+                const iconColor = document.getElementById('iconColor').value;
+
+                // Create temporary element to render icon
+                const tempDiv = document.createElement('div');
+                tempDiv.style.position = 'absolute';
+                tempDiv.style.left = '-9999px';
+                tempDiv.style.fontSize = `${size * 0.6}px`;
+                tempDiv.style.color = iconColor;
+
+                if (library === 'mdi') {
+                    tempDiv.className = `mdi ${iconClass}`;
+                } else {
+                    tempDiv.className = `fa-solid ${iconClass}`;
+                }
+
+                document.body.appendChild(tempDiv);
+
+                // Use canvas to draw text icon
+                setTimeout(() => {
+                    const iconText = window.getComputedStyle(tempDiv, '::before').content;
+                    document.body.removeChild(tempDiv);
+
+                    ctx.fillStyle = iconColor;
+                    ctx.font = `${size * 0.6}px "Material Design Icons", "Font Awesome 6 Free"`;
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+
+                    // Draw the icon character
+                    if (library === 'mdi') {
+                        ctx.font = `${size * 0.6}px "Material Design Icons"`;
+                    } else {
+                        ctx.font = `900 ${size * 0.6}px "Font Awesome 6 Free"`;
+                    }
+
+                    // Get the unicode character
+                    const iconElement = document.createElement('i');
+                    iconElement.className = library === 'mdi' ? `mdi ${iconClass}` : `fa-solid ${iconClass}`;
+                    document.body.appendChild(iconElement);
+                    const computed = window.getComputedStyle(iconElement, '::before');
+                    const unicode = computed.content.replace(/['"]/g, '');
+                    document.body.removeChild(iconElement);
+
+                    ctx.fillText(unicode, size/2, size/2);
+                    resolve();
+                }, 100);
+            });
+        }
+
+        async function generateLogo() {
+            const library = document.getElementById('iconLibrary').value;
             const bgColor = document.getElementById('bgColor').value;
             const iconColor = document.getElementById('iconColor').value;
             const size = parseInt(document.getElementById('size').value);
@@ -187,24 +450,36 @@
             ctx.arc(size/2, size/2, size/2, 0, Math.PI * 2);
             ctx.fill();
 
-            // Draw icon
             const center = size / 2;
             const iconSize = size * 0.5;
 
-            switch(iconType) {
-                case 'fire':
-                case 'flame':
-                    drawFire(ctx, center, center + iconSize/4, iconSize);
-                    break;
-                case 'fireplace':
-                    drawFireplace(ctx, center, center, iconSize);
-                    break;
-                case 'radiator':
-                    drawRadiator(ctx, center, center, iconSize);
-                    break;
-                case 'text':
-                    drawText(ctx, center, center, iconSize);
-                    break;
+            if (library === 'custom') {
+                // Custom drawn icons
+                const iconType = document.getElementById('iconType').value;
+
+                switch(iconType) {
+                    case 'fire':
+                        drawFire(ctx, center, center + iconSize/4, iconSize);
+                        break;
+                    case 'flame':
+                        drawFlame(ctx, center, center + iconSize/4, iconSize);
+                        break;
+                    case 'fireplace':
+                        drawFireplace(ctx, center, center, iconSize);
+                        break;
+                    case 'radiator':
+                        drawRadiator(ctx, center, center, iconSize);
+                        break;
+                    case 'text':
+                        drawText(ctx, center, center, iconSize);
+                        break;
+                }
+            } else {
+                // Library icons (MDI or FA)
+                const iconClass = document.getElementById('iconSelect').value;
+                if (iconClass) {
+                    await drawLibraryIcon(iconClass, library);
+                }
             }
         }
 
@@ -215,14 +490,17 @@
             link.click();
         }
 
-        // Generate initial logo
-        generateLogo();
-
-        // Update on changes
+        // Event listeners
+        document.getElementById('iconLibrary').addEventListener('change', toggleIconSection);
         document.getElementById('iconType').addEventListener('change', generateLogo);
+        document.getElementById('iconSelect').addEventListener('change', generateLogo);
+        document.getElementById('iconSearch').addEventListener('input', filterIcons);
         document.getElementById('bgColor').addEventListener('input', generateLogo);
         document.getElementById('iconColor').addEventListener('input', generateLogo);
         document.getElementById('size').addEventListener('change', generateLogo);
+
+        // Generate initial logo
+        generateLogo();
     </script>
 </body>
 </html>
