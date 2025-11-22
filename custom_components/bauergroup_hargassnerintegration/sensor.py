@@ -104,7 +104,22 @@ async def async_setup_entry(
     # Add standard sensors
     for sensor_def in STANDARD_SENSORS:
         key, name, device_class, state_class, icon = sensor_def
-        if key in coordinator.data:
+        entities.append(
+            HargassnerParameterSensor(
+                coordinator,
+                entry,
+                key,
+                f"{device_name} {name}",
+                device_class,
+                state_class,
+                icon,
+            )
+        )
+
+    # Add additional sensors if FULL mode
+    if sensor_set == SENSOR_SET_FULL:
+        for sensor_def in ADDITIONAL_SENSORS:
+            key, name, device_class, state_class, icon = sensor_def
             entities.append(
                 HargassnerParameterSensor(
                     coordinator,
@@ -116,23 +131,6 @@ async def async_setup_entry(
                     icon,
                 )
             )
-
-    # Add additional sensors if FULL mode
-    if sensor_set == SENSOR_SET_FULL:
-        for sensor_def in ADDITIONAL_SENSORS:
-            key, name, device_class, state_class, icon = sensor_def
-            if key in coordinator.data:
-                entities.append(
-                    HargassnerParameterSensor(
-                        coordinator,
-                        entry,
-                        key,
-                        f"{device_name} {name}",
-                        device_class,
-                        state_class,
-                        icon,
-                    )
-                )
 
     async_add_entities(entities)
 

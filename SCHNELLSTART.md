@@ -1,9 +1,5 @@
 # Schnellstart-Anleitung
 
-## Projekt erfolgreich erstellt! 🎉
-
-Dein neues, professionelles Hargassner Pellet Home Assistant Custom Component ist fertig.
-
 ## Was wurde erstellt?
 
 ### ✅ Vollständige Integration
