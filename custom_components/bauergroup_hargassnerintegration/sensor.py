@@ -74,7 +74,7 @@ async def async_setup_entry(
     entities: list[SensorEntity] = []
 
     # Always add connection sensor
-    entities.append(HargassnerConnectionSensor(coordinator, entry))
+    entities.append(HargassnerConnectionSensor(coordinator, entry, language))
 
     # Add boiler state sensor
     entities.append(HargassnerStateSensor(coordinator, entry, language))
@@ -83,7 +83,7 @@ async def async_setup_entry(
     entities.append(HargassnerErrorSensor(coordinator, entry, language))
 
     # Add energy sensor
-    entities.append(HargassnerEnergySensor(coordinator, entry))
+    entities.append(HargassnerEnergySensor(coordinator, entry, language))
 
     # Add sensors based on sensor set configuration
     if sensor_set == SENSOR_SET_FULL:
@@ -183,18 +183,20 @@ class HargassnerConnectionSensor(HargassnerBaseSensor):
         self,
         coordinator: HargassnerDataUpdateCoordinator,
         entry: ConfigEntry,
+        language: str,
     ) -> None:
         """Initialize connection sensor."""
         super().__init__(coordinator, entry)
-        self._attr_name = "Connection"
+        self._attr_name = "Connection" if language.upper() == "EN" else "Verbindung"
         self._attr_unique_id = f"{entry.entry_id}_connection"
+        self._language = language
 
     @property
     def native_value(self) -> str:
         """Return connection state."""
         if self.coordinator.telnet_client.connected:
-            return STATE_CONNECTED
-        return STATE_DISCONNECTED
+            return "Verbunden" if self._language.upper() == "DE" else "Connected"
+        return "Getrennt" if self._language.upper() == "DE" else "Disconnected"
 
     @property
     def icon(self) -> str:
@@ -231,10 +233,10 @@ class HargassnerStateSensor(HargassnerBaseSensor):
     ) -> None:
         """Initialize state sensor."""
         super().__init__(coordinator, entry)
-        self._attr_name = "Boiler State"
+        self._attr_name = "Boiler State" if language.upper() == "EN" else "Kesselzustand"
         self._attr_unique_id = f"{entry.entry_id}_state"
         self._language = language
-        self._attr_options = BOILER_STATES_DE if language == LANGUAGE_DE else BOILER_STATES_EN
+        self._attr_options = BOILER_STATES_DE if language.upper() == "DE" else BOILER_STATES_EN
 
     @property
     def native_value(self) -> str | None:
@@ -250,7 +252,7 @@ class HargassnerStateSensor(HargassnerBaseSensor):
         except (ValueError, TypeError):
             pass
 
-        return "Unknown"
+        return "Unbekannt" if self._language.upper() == "DE" else "Unknown"
 
     @property
     def icon(self) -> str:
@@ -280,7 +282,7 @@ class HargassnerErrorSensor(HargassnerBaseSensor):
     ) -> None:
         """Initialize error sensor."""
         super().__init__(coordinator, entry)
-        self._attr_name = "Operation Status"
+        self._attr_name = "Operation Status" if language.upper() == "EN" else "Betriebsstatus"
         self._attr_unique_id = f"{entry.entry_id}_operation"
         self._language = language
         self._attr_options = ["OK"] + [
@@ -385,11 +387,13 @@ class HargassnerEnergySensor(HargassnerBaseSensor):
         self,
         coordinator: HargassnerDataUpdateCoordinator,
         entry: ConfigEntry,
+        language: str,
     ) -> None:
         """Initialize energy sensor."""
         super().__init__(coordinator, entry)
-        self._attr_name = "Energy Consumption"
+        self._attr_name = "Energy Consumption" if language.upper() == "EN" else "Energieverbrauch"
         self._attr_unique_id = f"{entry.entry_id}_energy"
+        self._language = language
 
     @property
     def native_value(self) -> float | None:
