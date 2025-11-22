@@ -57,23 +57,6 @@ STANDARD_SENSORS = [
     ("TVL_1", "Flow 1 Temperature", SensorDeviceClass.TEMPERATURE, SensorStateClass.MEASUREMENT, "mdi:coolant-temperature"),
 ]
 
-ADDITIONAL_SENSORS = [
-    ("O2", "O2 Level", None, SensorStateClass.MEASUREMENT, None),
-    ("O2soll", "O2 Target", None, SensorStateClass.MEASUREMENT, None),
-    ("SZist", "Draft", None, SensorStateClass.MEASUREMENT, None),
-    ("SZsoll", "Draft Target", None, SensorStateClass.MEASUREMENT, None),
-    ("I Es", "Delivery Motor Current", SensorDeviceClass.CURRENT, SensorStateClass.MEASUREMENT, None),
-    ("I Sr", "Grate Motor Current", SensorDeviceClass.CURRENT, SensorStateClass.MEASUREMENT, None),
-    ("I Rein", "Cleaning Motor Current", SensorDeviceClass.CURRENT, SensorStateClass.MEASUREMENT, None),
-    ("TVL_2", "Flow 2 Temperature", SensorDeviceClass.TEMPERATURE, SensorStateClass.MEASUREMENT, None),
-    ("TVL_3", "Flow 3 Temperature", SensorDeviceClass.TEMPERATURE, SensorStateClass.MEASUREMENT, None),
-    ("TVL_4", "Flow 4 Temperature", SensorDeviceClass.TEMPERATURE, SensorStateClass.MEASUREMENT, None),
-    ("TVL_5", "Flow 5 Temperature", SensorDeviceClass.TEMPERATURE, SensorStateClass.MEASUREMENT, None),
-    ("TVL_6", "Flow 6 Temperature", SensorDeviceClass.TEMPERATURE, SensorStateClass.MEASUREMENT, None),
-    ("TB2", "Hot Water 2 Temperature", SensorDeviceClass.TEMPERATURE, SensorStateClass.MEASUREMENT, None),
-    ("TB3", "Hot Water 3 Temperature", SensorDeviceClass.TEMPERATURE, SensorStateClass.MEASUREMENT, None),
-]
-
 
 async def async_setup_entry(
     hass: HomeAssistant,

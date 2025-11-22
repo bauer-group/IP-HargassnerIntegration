@@ -82,7 +82,9 @@ Starte Home Assistant neu.
    - **Firmware-Version:** `V14_1HAR_q1`
    - **Gerätename:** z.B. `Hargassner`
    - **Sprache:** `DE` (Deutsch)
-   - **Sensor-Set:** `STANDARD` oder `FULL`
+   - **Sensor-Set:**
+     - `STANDARD` - 17 wichtigste Sensoren
+     - `FULL` - Alle 228 Sensoren aus dem Firmware-Template
 5. Klicke auf **Absenden**
 
 Die Sensoren werden automatisch erstellt!
@@ -102,23 +104,61 @@ Diese Nachricht hat **138 Werte** und wird korrekt geparst zu:
 - `Leistung = 89%` (Ausgangsleistung)
 - usw.
 
-## Verfügbare Sensoren (STANDARD Set)
+## Verfügbare Sensoren
+
+### Sensor-Set: STANDARD (17 Sensoren)
+
+**Immer verfügbar (4):**
 
 1. **Verbindungsstatus** - connected/disconnected
 2. **Kesselzustand** - Leistungsbrand, Zündung, Aus, etc.
 3. **Betriebsstatus** - OK / Fehlermeldungen
-4. **Kesseltemperatur** - °C
-5. **Rauchgastemperatur** - °C
-6. **Leistung** - %
-7. **Außentemperatur** - °C
-8. **Puffertemperatur Oben/Mitte/Unten** - °C
-9. **Warmwassertemperatur** - °C
-10. **Rücklauftemperatur** - °C
-11. **Pufferfüllgrad** - %
-12. **Pelletvorrat** - kg
-13. **Pelletverbrauch** - kg
-14. **Vorlauftemperatur** - °C
-15. **Energieverbrauch** - kWh (berechnet)
+4. **Energieverbrauch** - kWh (berechnet aus Pelletverbrauch)
+
+**Standard-Parameter (13):**
+
+1. **Kesseltemperatur** (TK) - °C
+2. **Rauchgastemperatur** (TRG) - °C
+3. **Leistung** - %
+4. **Außentemperatur** - °C
+5. **Puffertemperatur Oben** (TPo) - °C
+6. **Puffertemperatur Mitte** (TPm) - °C
+7. **Puffertemperatur Unten** (TPu) - °C
+8. **Warmwassertemperatur** (TB1) - °C
+9. **Rücklauftemperatur** (TRL) - °C
+10. **Pufferfüllgrad** - %
+11. **Pelletvorrat** (Lagerstand) - kg
+12. **Pelletverbrauch** (Verbrauchszähler) - kg
+13. **Vorlauftemperatur 1** (TVL_1) - °C
+
+### Sensor-Set: FULL (228 Sensoren)
+
+Bei Auswahl von **FULL** werden alle 224 Parameter aus dem Firmware-Template als Sensoren erstellt:
+
+**Analog-Sensoren (112):**
+
+- Alle Temperaturen (Kessel, Puffer, Heizkreise 1-8, Boiler, Solar, etc.)
+- Leistung, O2-Gehalt, Lambda-Wert, Saugzug
+- Ventilpositionen aller Heizkreise
+- Pelletvorrat, Pelletverbrauch, Aschegehalt
+- Systemzeit (Minute, Stunde, Tag, Monat, Jahr)
+- Alle analogen Eingänge (AN11-AN16)
+
+**Digital-Sensoren (112):**
+
+- Alle Motoren (M1-M38): Pumpen, Mischer, Zubringer, Entaschung, etc.
+- Alle Eingänge (E1-E16): Schalter, Thermostate, Störmeldungen, etc.
+- Modi aller Heizkreise (HK1-HK8): Auto, Party, Ferien, Sparbetrieb
+- Betriebszustände: Automatik, Handbetrieb, Heizen, Störung
+- Zeitprogramme: Abgesenkt, Normal, Party-Countdown, etc.
+
+**Plus 4 Always-Sensoren:**
+
+- Connection, Boiler State, Operation Status, Energy Consumption
+
+#### Gesamt: 228 Sensoren
+
+Alle Sensoren verwenden ihre Original-Namen aus dem Firmware-Template (z.B. "HK1_VL", "O2", "M1_Kes_Ladepump").
 
 ## Hauptmerkmale
 
