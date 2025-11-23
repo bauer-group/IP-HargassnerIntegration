@@ -271,6 +271,32 @@ cards:
           - entity: sensor.hg_pk32_puffer_unten
             name: Puffer Unten
             icon: mdi:thermometer
+          - type: section
+            label: Heizkreise
+          - entity: sensor.hg_pk32_heizkreis_anforderung
+            name: Gesamtanforderung HK
+            icon: mdi:radiator
+          - entity: sensor.hg_pk32_vorlauftemperatur_gesamt
+            name: Vorlauftemperatur Gesamt
+            icon: mdi:thermometer-high
+          - entity: sensor.hg_pk32_vorlauf_hk_1
+            name: Vorlauf HK 1
+            icon: mdi:thermometer
+          - entity: sensor.hg_pk32_vorlauf_soll_hk_1
+            name: Ziel HK 1
+            icon: mdi:target
+          - type: section
+            label: Warmwasser
+          - entity: sensor.hg_pk32_warmwasser_1
+            name: Warmwasser 1
+            icon: mdi:water-boiler
+          - entity: sensor.hg_pk32_warmwasser_soll_1
+            name: Warmwasser Soll 1
+            icon: mdi:target
+          - type: section
+            label: Außentemperaturen
+          - entity: sensor.hg_pk32_aussentemperatur
+            name: Außentemperatur
         state_color: true
         show_header_toggle: false
     columns: 1
@@ -356,6 +382,38 @@ cards:
         logarithmic_scale: false
         days_to_show: 1
         title: Pufferspeichertemperaturen
+      - chart_type: line
+        period: 5minute
+        type: statistics-graph
+        entities:
+          - entity: sensor.hg_pk32_vorlauf_hk_1
+            name: Vorlauf HK1 (Ist)
+          - entity: sensor.hg_pk32_vorlauf_soll_hk_1
+            name: Vorlauf HK1 (Soll)
+          - entity: sensor.hg_pk32_warmwasser_1
+            name: Vorlauf Warmwasser (Ist)
+          - entity: sensor.hg_pk32_warmwasser_soll_1
+            name: Vorlauf Warmwasser (Soll)
+        stat_types:
+          - mean
+        hide_legend: false
+        logarithmic_scale: false
+        days_to_show: 1
+        title: Heizkreistemperaturen & Warmwasser
+      - chart_type: line
+        period: 5minute
+        type: statistics-graph
+        entities:
+          - entity: sensor.hg_pk32_aussentemperatur
+            name: Außentemperatur
+        stat_types:
+          - mean
+          - max
+          - min
+        hide_legend: true
+        logarithmic_scale: false
+        days_to_show: 1
+        title: Außentemperatur
     columns: 1
   - type: vertical-stack
     cards:
