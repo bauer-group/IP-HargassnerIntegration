@@ -1,8 +1,12 @@
 {
   "domain": "bauergroup_hargassnerintegration",
   "name": "BAUERGROUP Hargassner Integration",
-  "after_dependencies": ["logger"],
-  "codeowners": ["@bauer-group"],
+  "after_dependencies": [
+    "logger"
+  ],
+  "codeowners": [
+    "@bauer-group"
+  ],
   "config_flow": true,
   "dependencies": [],
   "documentation": "https://github.com/bauer-group/IP-HargassnerIntegration",
@@ -11,5 +15,5 @@
   "issue_tracker": "https://github.com/bauer-group/IP-HargassnerIntegration/issues",
   "quality_scale": "silver",
   "requirements": [],
-  "version": "0.1.0"
+  "version": "0.1.1"
 }
