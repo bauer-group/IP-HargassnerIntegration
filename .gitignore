@@ -76,3 +76,6 @@ dmypy.json
 .vscode/
 .idea/
 .claude/
+
+# Benchmarks
+.benchmarks/
