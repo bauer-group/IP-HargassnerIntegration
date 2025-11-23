@@ -157,92 +157,80 @@ def update_manifest_version(version: str) -> None:
     print_success(f"Updated {manifest_path}")
 
 
-def update_schnellstart_version(version: str) -> None:
+def find_all_markdown_files() -> list[Path]:
     """
-    Update version in SCHNELLSTART.md.
+    Find all *.md files in the project.
+
+    Returns:
+        List of Path objects for all markdown files
+    """
+    project_root = Path('.')
+    md_files = []
+
+    # Find all .md files recursively, excluding hidden directories and node_modules
+    for md_file in project_root.rglob('*.md'):
+        # Skip hidden directories (starting with .)
+        if any(part.startswith('.') for part in md_file.parts):
+            continue
+        # Skip node_modules
+        if 'node_modules' in md_file.parts:
+            continue
+        md_files.append(md_file)
+
+    return md_files
+
+
+def update_markdown_file_version(file_path: Path, version: str) -> bool:
+    """
+    Update version references in a markdown file.
 
     Args:
+        file_path: Path to markdown file
         version: New version string
+
+    Returns:
+        True if file was modified, False otherwise
     """
-    schnellstart_path = Path('SCHNELLSTART.md')
+    with open(file_path, 'r', encoding='utf-8') as f:
+        original_content = f.read()
 
-    with open(schnellstart_path, 'r', encoding='utf-8') as f:
-        content = f.read()
+    content = original_content
 
-    # Update version line
+    # Pattern 1: **Version:** X.X.X
     content = re.sub(
-        r'\*\*Version:\*\* .+',
+        r'\*\*Version:\*\* \d+\.\d+\.\d+',
         f'**Version:** {version}',
         content
     )
 
-    with open(schnellstart_path, 'w', encoding='utf-8') as f:
-        f.write(content)
-
-    print_success(f"Updated {schnellstart_path}")
-
-
-def update_project_summary_version(version: str) -> None:
-    """
-    Update version in PROJECT_SUMMARY.md if it exists.
-
-    Args:
-        version: New version string
-    """
-    summary_path = Path('PROJECT_SUMMARY.md')
-
-    if not summary_path.exists():
-        return
-
-    with open(summary_path, 'r', encoding='utf-8') as f:
-        content = f.read()
-
-    # Update version line
+    # Pattern 2: Version: X.X.X (without bold)
     content = re.sub(
-        r'\*\*Version:\*\* .+',
-        f'**Version:** {version}',
-        content
-    )
-
-    # Also update version in metadata if present
-    content = re.sub(
-        r'Version: .+',
+        r'(?<![\*])Version: \d+\.\d+\.\d+',
         f'Version: {version}',
         content
     )
 
-    with open(summary_path, 'w', encoding='utf-8') as f:
-        f.write(content)
-
-    print_success(f"Updated {summary_path}")
-
-
-def update_readme_badges(version: str) -> None:
-    """
-    Update version badge in README.md if it exists.
-
-    Args:
-        version: New version string
-    """
-    readme_path = Path('README.md')
-
-    if not readme_path.exists():
-        return
-
-    with open(readme_path, 'r', encoding='utf-8') as f:
-        content = f.read()
-
-    # Update version badge if present
+    # Pattern 3: Version badge in shields.io
     content = re.sub(
-        r'!\[Version\]\(https://img\.shields\.io/badge/version-[\d.]+',
+        r'!\[Version\]\(https://img\.shields\.io/badge/version-\d+\.\d+\.\d+',
         f'![Version](https://img.shields.io/badge/version-{version}',
         content
     )
 
-    with open(readme_path, 'w', encoding='utf-8') as f:
-        f.write(content)
+    # Pattern 4: GitHub release badge
+    content = re.sub(
+        r'!\[GitHub Release\]\(https://img\.shields\.io/github/v/release/[^)]+\)',
+        f'![GitHub Release](https://img.shields.io/github/v/release/bauer-group/IP-HargassnerIntegration?style=for-the-badge)',
+        content
+    )
 
-    print_success(f"Updated {readme_path}")
+    # Only write if content changed
+    if content != original_content:
+        with open(file_path, 'w', encoding='utf-8') as f:
+            f.write(content)
+        return True
+
+    return False
 
 
 def update_all_versions(version: str) -> list[Path]:
@@ -263,19 +251,17 @@ def update_all_versions(version: str) -> list[Path]:
     update_manifest_version(version)
     updated_files.append(Path('custom_components/bauergroup_hargassnerintegration/manifest.json'))
 
-    # Update SCHNELLSTART.md
-    update_schnellstart_version(version)
-    updated_files.append(Path('SCHNELLSTART.md'))
+    # Find and update all markdown files
+    print_step("Scanning for markdown files...")
+    md_files = find_all_markdown_files()
+    print_success(f"Found {len(md_files)} markdown files")
 
-    # Update PROJECT_SUMMARY.md (if exists)
-    update_project_summary_version(version)
-    if Path('PROJECT_SUMMARY.md').exists():
-        updated_files.append(Path('PROJECT_SUMMARY.md'))
-
-    # Update README.md badges (if exists)
-    update_readme_badges(version)
-    if Path('README.md').exists():
-        updated_files.append(Path('README.md'))
+    for md_file in md_files:
+        if update_markdown_file_version(md_file, version):
+            print_success(f"Updated {md_file}")
+            updated_files.append(md_file)
+        else:
+            print_info(f"No version references found in {md_file}")
 
     return updated_files
 
