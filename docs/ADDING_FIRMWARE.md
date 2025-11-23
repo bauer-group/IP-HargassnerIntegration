@@ -6,10 +6,10 @@ This guide explains how to add support for additional Hargassner firmware versio
 
 - [Overview](#overview)
 - [Quick Start (4 Steps)](#quick-start-4-steps)
-- [Schritt 1: Firmware-Version ablesen](#schritt-1-firmware-version-ablesen)
-- [Schritt 2: SD-Karten-Logging aktivieren](#schritt-2-sd-karten-logging-aktivieren)
-- [Schritt 3: DAQ-Datei auslesen](#schritt-3-daq-datei-auslesen)
-- [Schritt 4: Code einfügen](#schritt-4-code-einfügen)
+- [Step 1: Read Firmware Version](#step-1-read-firmware-version)
+- [Step 2: Enable SD Card Logging](#step-2-enable-sd-card-logging)
+- [Step 3: Parse DAQ File](#step-3-parse-daq-file)
+- [Step 4: Insert Code](#step-4-insert-code)
 - [Testing and Validation](#testing-and-validation)
 - [Troubleshooting](#troubleshooting)
 - [Contributing Your Template](#contributing-your-template)
@@ -37,98 +37,103 @@ Boiler → DAQ File on SD Card → DAQ Parser Tool → Firmware Template → Int
 
 ### Total Time: ~10 minutes
 
-1. **Firmware-Version am Kessel-Display ablesen** (1 min)
-2. **SD-Karten-Logging für einige Minuten aktivieren** (5 min)
-3. **DAQ-Datei mit Tool auslesen und Python-Code generieren** (2 min)
-4. **Python-Code an richtigen Stellen einfügen** (2 min)
+1. **Read firmware version from boiler display** (1 min)
+2. **Enable SD card logging for a few minutes** (5 min)
+3. **Parse DAQ file with tool and generate Python code** (2 min)
+4. **Insert Python code in the right places** (2 min)
 
-Fertig! ✨
+Done! ✨
 
 ---
 
-## Schritt 1: Firmware-Version ablesen
+## Step 1: Read Firmware Version
 
-### Am Kessel-Display
+### On Boiler Display
 
-1. Gehe zum Hauptmenü deines Hargassner-Kessels
-2. Navigiere zu **Service** oder **Info**
-3. Suche nach **Software-Version** oder **Firmware**
-4. Notiere die Version (z.B. `V14.1HAR.q1`, `V15.2HAR`, etc.)
+1. Go to the main menu of your Hargassner boiler
+2. Navigate to **Service** or **Info**
+3. Look for **Software Version** or **Firmware**
+4. Note down the version (e.g., `V14.1HAR.q1`, `V15.2HAR`, etc.)
 
-**Beispiel:**
+**Example:**
 ```
 Software: V14.1HAR.q1
 Hardware: V1.0
 ```
 
-Diese Version benötigst du später für die Benennung im Code.
+You'll need this version later for naming in the code.
 
 ---
 
-## Schritt 2: SD-Karten-Logging aktivieren
+## Step 2: Enable SD Card Logging
 
-### 2.1 SD-Karte einlegen
+### 2.1 Insert SD Card
 
-Falls noch keine SD-Karte im Kessel ist:
-- Öffne das Bedienfeld des Kessels
-- Lege eine SD-Karte ein (in der Regel hinter einer kleinen Klappe)
-- Der Kessel beginnt automatisch mit dem Logging
+If there's no SD card in the boiler yet:
 
-### 2.2 Logging laufen lassen
+- Open the boiler control panel
+- Insert an SD card (usually behind a small door)
+- The boiler will start logging automatically
 
-**Wichtig:** Lasse den Kessel für mindestens **5-10 Minuten** laufen, während die SD-Karte eingelegt ist.
+### 2.2 Let Logging Run
 
-Der Kessel schreibt kontinuierlich DAQ-Dateien mit allen Parameter-Definitionen und Messwerten.
+**Important:** Let the boiler run for at least **5-10 minutes** with the SD card inserted.
 
-### 2.3 SD-Karte entnehmen
+The boiler continuously writes DAQ files with all parameter definitions and measurements.
 
-Nach 5-10 Minuten:
-- Öffne das Bedienfeld
-- Entnimm die SD-Karte
-- Stecke sie in deinen Computer (SD-Kartenleser)
+### 2.3 Remove SD Card
 
-**Hinweis:** Der Kessel kann ohne SD-Karte weiterlaufen, loggt dann aber keine neuen Daten.
+After 5-10 minutes:
+
+- Open the control panel
+- Remove the SD card
+- Insert it into your computer (SD card reader)
+
+**Note:** The boiler can continue running without the SD card, but won't log new data.
 
 ---
 
-## Schritt 3: DAQ-Datei auslesen
+## Step 3: Parse DAQ File
 
-### 3.1 DAQ-Datei finden
+### 3.1 Find DAQ File
 
-Auf der SD-Karte findest du Dateien wie:
+On the SD card you'll find files like:
+
 ```
 DAQ00000.DAQ
 DAQ00001.DAQ
 DAQ00002.DAQ
 ```
 
-**Welche Datei?** Nimm die **neueste** DAQ-Datei (höchste Nummer oder neuestes Datum).
+**Which file?** Take the **newest** DAQ file (highest number or latest date).
 
-Typische Dateigröße: 1-10 MB
+Typical file size: 1-10 MB
 
-### 3.2 DAQ Parser ausführen
+### 3.2 Run DAQ Parser
 
-Öffne ein Terminal/Kommandozeile und navigiere zum `tools`-Ordner der Integration:
+Open a terminal/command prompt and navigate to the integration's `tools` folder:
 
 **Windows:**
+
 ```bash
 cd C:\Temp\nano_pk\tools
 python daq_parser.py E:\DAQ00000.DAQ --output python > firmware_template.txt
 ```
 
 **Linux/macOS:**
+
 ```bash
 cd /path/to/IP-HargassnerIntegration/tools
 python3 daq_parser.py /media/sd-card/DAQ00000.DAQ --output python > firmware_template.txt
 ```
 
-**Hinweis:** Ersetze den Pfad zur DAQ-Datei mit dem tatsächlichen Pfad auf deinem System (z.B. `E:\DAQ00000.DAQ` wenn die SD-Karte als Laufwerk E: eingebunden ist).
+**Note:** Replace the path to the DAQ file with the actual path on your system (e.g., `E:\DAQ00000.DAQ` if the SD card is mounted as drive E:).
 
-### 3.3 Generierter Code
+### 3.3 Generated Code
 
-Das Tool erstellt automatisch eine Datei `firmware_template.txt` mit fertigem Python-Code:
+The tool automatically creates a `firmware_template.txt` file with ready-to-use Python code:
 
-**Beispiel-Output:**
+**Example Output:**
 
 ```python
 """
@@ -154,11 +159,11 @@ FIRMWARE_TEMPLATES["V14_1HAR_q1"] = """<DAQPRJ>
     <CHANNEL id="0" name="ZK" dop="" unit="" />
     <CHANNEL id="3" name="TK" dop="" unit="°C" />
     <CHANNEL id="8" name="TRG" dop="" unit="°C" />
-    <!-- ... alle weiteren Parameter ... -->
+    <!-- ... all other parameters ... -->
   </ANALOG>
   <DIGITAL>
     <CHANNEL id="102" bit="0" name="M1_Kessel_Geblaese" />
-    <!-- ... alle weiteren Bits ... -->
+    <!-- ... all other bits ... -->
   </DIGITAL>
 </DAQPRJ>"""
 
@@ -166,27 +171,28 @@ FIRMWARE_TEMPLATES["V14_1HAR_q1"] = """<DAQPRJ>
 FIRMWARE_VERSIONS.append("V14_1HAR_q1")
 ```
 
-Dieser Code enthält:
-- ✅ Komplettes DAQPRJ-XML-Template mit allen Parametern
-- ✅ System-Informationen (Hersteller, Modell, Version)
-- ✅ Statistiken (Anzahl Parameter, Message-Länge)
-- ✅ Fertige Code-Snippets zum Einfügen
+This code contains:
+
+- ✅ Complete DAQPRJ XML template with all parameters
+- ✅ System information (manufacturer, model, version)
+- ✅ Statistics (parameter count, message length)
+- ✅ Ready-to-use code snippets
 
 ---
 
-## Schritt 4: Code einfügen
+## Step 4: Insert Code
 
-Jetzt fügst du den generierten Code an zwei Stellen ein:
+Now insert the generated code in two places:
 
-### 4.1 Datei 1: firmware_templates.py
+### 4.1 File 1: firmware_templates.py
 
-Öffne: `custom_components/bauergroup_hargassnerintegration/src/firmware_templates.py`
+Open: `custom_components/bauergroup_hargassnerintegration/src/firmware_templates.py`
 
-**Was einfügen:** Die komplette Zeile mit `FIRMWARE_TEMPLATES["..."] = """<DAQPRJ>...</DAQPRJ>"""`
+**What to insert:** The complete line with `FIRMWARE_TEMPLATES["..."] = """<DAQPRJ>...</DAQPRJ>"""`
 
-**Wo einfügen:** In das Dictionary `FIRMWARE_TEMPLATES`, unterhalb der bestehenden Einträge.
+**Where to insert:** In the `FIRMWARE_TEMPLATES` dictionary, below the existing entries.
 
-**Beispiel:**
+**Example:**
 
 ```python
 FIRMWARE_TEMPLATES = {
@@ -195,59 +201,59 @@ FIRMWARE_TEMPLATES = {
         <!-- existing template -->
     </DAQPRJ>""",
 
-    # Deine neue Firmware (aus firmware_template.txt kopieren)
+    # Your new firmware (copy from firmware_template.txt)
     "V15_2HAR": """<DAQPRJ>
-        <!-- HIER DEN KOMPLETTEN DAQPRJ-BLOCK EINFÜGEN -->
+        <!-- INSERT COMPLETE DAQPRJ BLOCK HERE -->
     </DAQPRJ>""",
 }
 ```
 
-**Tipp:** Kopiere einfach die komplette Zeile aus `firmware_template.txt` und füge sie vor der schließenden `}` ein.
+**Tip:** Simply copy the complete line from `firmware_template.txt` and insert it before the closing `}`.
 
-### 4.2 Datei 2: const.py
+### 4.2 File 2: const.py
 
-Öffne: `custom_components/bauergroup_hargassnerintegration/const.py`
+Open: `custom_components/bauergroup_hargassnerintegration/const.py`
 
-**Was einfügen:** Die Firmware-Version als String
+**What to insert:** The firmware version as a string
 
-**Wo einfügen:** In die Liste `FIRMWARE_VERSIONS`
+**Where to insert:** In the `FIRMWARE_VERSIONS` list
 
-**Beispiel:**
+**Example:**
 
 ```python
 FIRMWARE_VERSIONS: Final = [
     "V14_1HAR_q1",
-    "V15_2HAR",      # Deine neue Version hier hinzufügen
+    "V15_2HAR",      # Add your new version here
 ]
 ```
 
-**Wichtig:** Der Name muss **exakt identisch** sein mit dem Dictionary-Key in `firmware_templates.py`!
+**Important:** The name must be **exactly identical** to the dictionary key in `firmware_templates.py`!
 
-### 4.3 Fertig!
+### 4.3 Done!
 
-Das war's! Du hast erfolgreich:
+That's it! You've successfully:
 
-- ✅ DAQPRJ-XML-Template in `firmware_templates.py` eingefügt
-- ✅ Firmware-Version in `const.py` hinzugefügt
+- ✅ Inserted DAQPRJ XML template into `firmware_templates.py`
+- ✅ Added firmware version to `const.py`
 
-Jetzt kannst du die Integration testen.
+Now you can test the integration.
 
 ---
 
 ## Testing and Validation
 
-Nach dem Einfügen des Codes musst du die Integration testen.
+After inserting the code, you must test the integration.
 
-### 5.1 Home Assistant neustarten
+### 5.1 Restart Home Assistant
 
 ```bash
 # Via Home Assistant UI
 Settings → System → Restart
 ```
 
-### 5.2 Debug Logging aktivieren (optional)
+### 5.2 Enable Debug Logging (Optional)
 
-Füge in `configuration.yaml` ein:
+Add to `configuration.yaml`:
 
 ```yaml
 logger:
@@ -256,41 +262,42 @@ logger:
     custom_components.bauergroup_hargassnerintegration: debug
 ```
 
-Starte Home Assistant erneut.
+Restart Home Assistant again.
 
-### 5.3 Integration mit neuer Firmware hinzufügen
+### 5.3 Add Integration with New Firmware
 
-1. Gehe zu **Einstellungen → Geräte & Dienste**
-2. Klicke **Integration hinzufügen**
-3. Suche nach **"Bauergroup Hargassner"**
-4. Konfiguriere:
-   - **Host:** IP-Adresse deines Kessels
-   - **Firmware:** Wähle deine neue Firmware-Version
-   - **Sensor Set:** Starte mit **STANDARD**
-5. Klicke **Absenden**
+1. Go to **Settings → Devices & Services**
+2. Click **Add Integration**
+3. Search for **"Bauergroup Hargassner"**
+4. Configure:
+   - **Host:** Your boiler's IP address
+   - **Firmware:** Select your new firmware version
+   - **Sensor Set:** Start with **STANDARD**
+5. Click **Submit**
 
-### 5.4 Sensoren überprüfen
+### 5.4 Verify Sensors
 
-Prüfe, dass die Sensoren korrekte Werte anzeigen:
+Check that sensors are showing correct values:
 
-1. **Einstellungen → Geräte & Dienste → Deine Integration**
-2. Klicke auf die Integration, um alle Entitäten zu sehen
-3. Vergleiche Sensorwerte mit dem Kessel-Display:
-   - Kesseltemperatur sollte übereinstimmen
-   - Außentemperatur sollte übereinstimmen
-   - Kesselzustand sollte übereinstimmen
-   - Werte sollten alle 5 Sekunden aktualisiert werden
+1. **Settings → Devices & Services → Your Integration**
+2. Click on the integration to see all entities
+3. Compare sensor values with boiler display:
+   - Boiler temperature should match
+   - Outside temperature should match
+   - Boiler state should match
+   - Values should update every 5 seconds
 
-### 5.5 Logs prüfen
+### 5.5 Check Logs
 
-**Einstellungen → System → Protokolle**
+**Settings → System → Logs**
 
-Erwartete Meldungen:
+Expected messages:
+
 - ✅ `Successfully connected to boiler`
 - ✅ `Parsed message with X parameters`
-- ❌ Keine Parsing-Fehler oder "Unknown state" Warnungen
+- ❌ No parsing errors or "Unknown state" warnings
 
-**Beispiel-Logs:**
+**Example Logs:**
 
 ```
 [custom_components.bauergroup_hargassnerintegration.src.telnet_client] Successfully connected to 192.168.1.100:23
@@ -298,28 +305,30 @@ Erwartete Meldungen:
 [custom_components.bauergroup_hargassnerintegration.coordinator] Data update successful
 ```
 
-### 5.6 Validierung mit Tools (optional)
+### 5.6 Validate with Tools (Optional)
 
-Prüfe die Template-Konsistenz:
+Check template consistency:
 
 ```bash
 cd tools
 python parameter_validator.py
 ```
 
-Das Tool prüft:
-- XML ist valide
-- Keine duplizierten Parameter
-- Namenskonventionen eingehalten
-- Alle Standard-Parameter vorhanden
+The tool checks:
 
-### 5.7 Erweiterte Tests
+- XML is valid
+- No duplicate parameters
+- Naming conventions followed
+- All standard parameters present
 
-Lasse die Integration 24 Stunden laufen, um sicherzustellen:
-- Verbindung bleibt stabil
-- Keine Memory Leaks
-- Alle Sensorwerte aktualisieren korrekt
-- Keine unerwarteten Fehler in Logs
+### 5.7 Extended Testing
+
+Let the integration run for 24 hours to ensure:
+
+- Connection remains stable
+- No memory leaks
+- All sensor values update correctly
+- No unexpected errors in logs
 
 ---
 
@@ -330,6 +339,7 @@ Lasse die Integration 24 Stunden laufen, um sicherzustellen:
 **Cause:** XML syntax error in template
 
 **Solution:**
+
 - Validate the XML using an online validator
 - Ensure you copied the complete `<DAQPRJ>...</DAQPRJ>` block
 - Check for special characters or encoding issues
@@ -339,7 +349,8 @@ Lasse die Integration 24 Stunden laufen, um sicherzustellen:
 **Cause:** Version name mismatch between `const.py` and `firmware_templates.py`
 
 **Solution:**
-- Ensure the dictionary key in `FIRMWARE_TEMPLATES` matches exactly the string in `FIRMWARE_VERSIONS`
+
+- Ensure the dictionary key in `FIRMWARE_TEMPLATES` exactly matches the string in `FIRMWARE_VERSIONS`
 - Version names are case-sensitive
 
 ### Issue: Sensors show "Unknown" state
@@ -347,9 +358,10 @@ Lasse die Integration 24 Stunden laufen, um sicherzustellen:
 **Cause:** Parameter not found in telnet message
 
 **Solution:**
+
 - Enable debug logging
 - Check logs for message length: `Parsed message with X values`
-- Verify DAQ file is from the same boiler you're connecting to
+- Verify the DAQ file is from the same boiler you're connecting to
 - Some parameters may not be available on all configurations
 
 ### Issue: Wrong sensor values
@@ -357,18 +369,20 @@ Lasse die Integration 24 Stunden laufen, um sicherzustellen:
 **Cause:** Parameter index mismatch or wrong firmware template
 
 **Solution:**
+
 - Double-check you're using the correct firmware version in config
 - Verify the DAQ file matches your boiler model and firmware
 - Compare a few key values manually:
-  - Boiler temperature should be index 3 in most firmwares
-  - Outside temperature is usually index 20
-  - Check boiler display to validate
+  - Boiler temperature is usually index 3 in most firmwares
+  - Outside temperature is typically index 20
+  - Check against boiler display to validate
 
 ### Issue: DAQ parser fails to extract DAQPRJ
 
 **Cause:** DAQ file is corrupted or wrong format
 
 **Solution:**
+
 - Try a different DAQ file from the SD card
 - Ensure file was copied completely (check file size)
 - Try `--output text` to see what information is available
@@ -379,10 +393,11 @@ Lasse die Integration 24 Stunden laufen, um sicherzustellen:
 **Cause:** Python syntax error in `firmware_templates.py`
 
 **Solution:**
+
 - Check Home Assistant logs for Python traceback
 - Ensure XML string is properly enclosed in `""" ... """`
 - Verify commas between dictionary entries
-- No trailing commas after last entry
+- No trailing comma after last entry
 
 ---
 
@@ -406,15 +421,18 @@ Once you've tested your firmware template and confirmed it works, please contrib
 ### What to Include
 
 **Required:**
+
 - Firmware template in `firmware_templates.py`
 - Version string in `const.py`
 
 **Recommended:**
+
 - Sample DAQ file (first 100 lines) in `docs/firmware_samples/YOUR_VERSION.txt`
 - Screenshot of working sensors in `docs/images/`
 - Notes about any special configuration
 
 **Template for Pull Request:**
+
 ```markdown
 # Add support for firmware V15.2HAR
 
@@ -444,6 +462,7 @@ Tested on production system without issues.
 ### Tools Documentation
 
 See [tools/README.md](../tools/README.md) for detailed information about:
+
 - `daq_parser.py` - DAQ file parser
 - `telnet_tester.py` - Telnet connection tester
 - `message_generator.py` - Test message generator
