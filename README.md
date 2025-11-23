@@ -15,7 +15,7 @@
 
   **Modern, professional Home Assistant integration for Hargassner pellet boilers with real-time telnet monitoring.**
 
-  [Features](#-features) • [Installation](#-installation) • [Configuration](#️-configuration) • [Sensors](#-available-sensors) • [Support](#support)
+  [Features](#-features) • [Screenshots](#-screenshots) • [Installation](#-installation) • [Configuration](#️-configuration) • [Documentation](#-documentation) • [Support](#support)
 </div>
 
 ---
@@ -33,6 +33,24 @@
 - 📊 **Flexible sensor sets**: Standard (17 sensors) or Full (228 sensors)
 - 🔌 **Local polling** - no cloud dependency
 
+## 📸 Screenshots
+
+<div align="center">
+
+### Device Overview
+<img src="docs/images/Device_Example.png" alt="Device Overview" width="800"/>
+
+### Sensor Dashboard
+<img src="docs/images/Dashboard_Example.png" alt="Dashboard Example" width="800"/>
+
+### Detailed Sensor View
+<img src="docs/images/Device_Detail_Example.png" alt="Device Detail" width="800"/>
+
+### Energy Dashboard Integration
+<img src="docs/images/Energy_Dashboard_Example.png" alt="Energy Dashboard" width="800"/>
+
+</div>
+
 ## 🔥 Supported Models
 
 | Model | Firmware | Status |
@@ -40,7 +58,7 @@
 | Nano-PK | V14_1HAR_q1 | ✅ Fully tested |
 | Other Hargassner models | Custom | ⚠️ Requires firmware template |
 
-> **Note:** Additional firmware versions can be easily added via XML templates. See [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) for details.
+> **Note:** Additional firmware versions can be easily added via XML templates. See [docs/ADDING_FIRMWARE.md](docs/ADDING_FIRMWARE.md) for details.
 
 ## 📦 Installation
 
@@ -168,6 +186,27 @@ To adjust these values:
 1. Go to **Settings** → **Devices & Services**
 2. Find your Hargassner integration
 3. Click **Configure** → Adjust values as needed
+
+## 📚 Documentation
+
+### User Guides
+
+- **[Quick Start Guide](README.md#️-configuration)** - Get started in 5 minutes
+- **[German Quick Start (SCHNELLSTART.md)](SCHNELLSTART.md)** - Schnellstartanleitung auf Deutsch
+- **[Detailed Installation Guide](docs/INSTALLATION.md)** - Step-by-step installation instructions
+- **[Energy Dashboard Setup](README.md#energy-dashboard-integration)** - Configure energy tracking
+
+### Technical Documentation
+
+- **[Architecture Overview](docs/ARCHITECTURE.md)** - Deep-dive into technical architecture, data flow, and design decisions
+- **[Development Guide](docs/DEVELOPMENT.md)** - Developer setup, coding standards, and workflow
+- **[Adding Firmware Support](docs/ADDING_FIRMWARE.md)** - Guide for adding new firmware versions
+- **[Contributing Guidelines](docs/CONTRIBUTING.md)** - How to contribute to this project
+
+### Troubleshooting
+
+- **[Common Issues](README.md#troubleshooting)** - Solutions for connection and data problems
+- **[Debug Logging](README.md#enable-debug-logging)** - Enable detailed logging for diagnosis
 
 ## Troubleshooting
 
