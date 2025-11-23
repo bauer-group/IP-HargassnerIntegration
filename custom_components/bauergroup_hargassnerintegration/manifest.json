@@ -1,15 +1,15 @@
 {
   "domain": "bauergroup_hargassnerintegration",
   "name": "BAUERGROUP Hargassner Integration",
+  "after_dependencies": ["logger"],
   "codeowners": ["@bauer-group"],
   "config_flow": true,
   "dependencies": [],
-  "documentation": "https://github.com/bauer-group/IP-HargassnerIntegration",
-  "issue_tracker": "https://github.com/bauer-group/IP-HargassnerIntegration/issues",
-  "requirements": [],
-  "version": "0.1.0",
-  "iot_class": "local_polling",
+  "documentation": "https://github.com/bauer-group/BAUERGROUP.Internal.Integration.Hargassner",
   "integration_type": "device",
+  "iot_class": "local_polling",
+  "issue_tracker": "https://github.com/bauer-group/BAUERGROUP.Internal.Integration.Hargassner/issues",
   "quality_scale": "silver",
-  "after_dependencies": ["logger"]
+  "requirements": [],
+  "version": "0.1.0"
 }
