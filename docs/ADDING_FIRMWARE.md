@@ -268,7 +268,7 @@ Restart Home Assistant again.
 
 1. Go to **Settings → Devices & Services**
 2. Click **Add Integration**
-3. Search for **"Bauergroup Hargassner"**
+3. Search for **"BAUERGROUP Hargassner"**
 4. Configure:
    - **Host:** Your boiler's IP address
    - **Firmware:** Select your new firmware version
@@ -300,8 +300,8 @@ Expected messages:
 **Example Logs:**
 
 ```
-[custom_components.bauergroup_hargassnerintegration.src.telnet_client] Successfully connected to 192.168.1.100:23
-[custom_components.bauergroup_hargassnerintegration.src.message_parser] Parsed message with 138 values
+[custom_components.bauergroup_hargassnerintegration.telnet_client] Successfully connected to 192.168.1.100:23
+[custom_components.bauergroup_hargassnerintegration.message_parser] Parsed message with 138 values
 [custom_components.bauergroup_hargassnerintegration.coordinator] Data update successful
 ```
 

@@ -268,7 +268,7 @@ Starte Home Assistant erneut.
 
 1. Gehe zu **Einstellungen → Geräte & Dienste**
 2. Klicke **Integration hinzufügen**
-3. Suche nach **"Bauergroup Hargassner"**
+3. Suche nach **"BAUERGROUP Hargassner"**
 4. Konfiguriere:
    - **Host:** IP-Adresse deines Kessels
    - **Firmware:** Wähle deine neue Firmware-Version
@@ -300,8 +300,8 @@ Erwartete Meldungen:
 **Beispiel-Logs:**
 
 ```
-[custom_components.bauergroup_hargassnerintegration.src.telnet_client] Successfully connected to 192.168.1.100:23
-[custom_components.bauergroup_hargassnerintegration.src.message_parser] Parsed message with 138 values
+[custom_components.bauergroup_hargassnerintegration.telnet_client] Successfully connected to 192.168.1.100:23
+[custom_components.bauergroup_hargassnerintegration.message_parser] Parsed message with 138 values
 [custom_components.bauergroup_hargassnerintegration.coordinator] Data update successful
 ```
 
