@@ -5,6 +5,16 @@ Alle wichtigen Änderungen an diesem Projekt werden in dieser Datei dokumentiert
 Das Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/),
 und dieses Projekt folgt [Semantic Versioning](https://semver.org/lang/de/).
 
+## [0.2.0] - 2025-11-25
+
+### ✨ Added
+
+- Firmware-Unterstützung für V14_0HAR_q hinzugefügt
+  - Community-Beitrag von [@notecp](https://github.com/notecp)
+  - Template in [firmware_templates.py](custom_components/bauergroup_hargassnerintegration/firmware_templates.py#L23) hinzugefügt
+  - Firmware-Version in [const.py](custom_components/bauergroup_hargassnerintegration/const.py) registriert
+  - [README.md](README.md) aktualisiert mit Status "Community tested - use at own risk"
+
 ## [0.1.2] - 2025-11-25
 
 ### 🐛 Fixed
