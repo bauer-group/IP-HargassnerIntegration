@@ -94,6 +94,7 @@ ERROR_CODES: Final = {
 # 3. Run tools/parameter_validator.py to verify consistency
 FIRMWARE_VERSIONS: Final = [
     "V14_1HAR_q1",
+    "V14_0HAR_q",
 ]
 
 # Energy calculation defaults
