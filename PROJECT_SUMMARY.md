@@ -24,8 +24,8 @@ Complete, professional Home Assistant custom component for Hargassner pellet boi
 ## Project Structure
 
 ```
-hargassner_pellet/
-├── custom_components/hargassner_pellet/    # Main integration
+./
+├── custom_components/bauergroup_hargassnerintegration/    # Main integration
 │   ├── __init__.py                         # Entry point, setup/teardown
 │   ├── config_flow.py                      # GUI configuration
 │   ├── const.py                            # Constants
