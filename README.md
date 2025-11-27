@@ -61,7 +61,7 @@
 | Model | Firmware | Status |
 |-------|----------|--------|
 | Nano-PK | V14_1HAR_q1 | ✅ Fully tested |
-| Nano-PK | V14_0HAR_q | ⚠️ Community tested (contributed by [@notecp](https://github.com/notecp)) - use at own risk |
+| Nano-PK | V14_0HAR_q | 🧪 Community tested (contributed by [@notecp](https://github.com/notecp)) |
 | Other Hargassner models | Custom | ⚠️ Requires firmware template |
 
 > **Note:** Additional firmware versions can be easily added via XML templates. See [Adding Firmware Support](docs/ADDING_FIRMWARE.md) (EN) or [Neue Firmware hinzufügen](docs/ADDING_FIRMWARE_DE.md) (DE) for details.

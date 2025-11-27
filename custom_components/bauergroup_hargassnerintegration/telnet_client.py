@@ -11,6 +11,8 @@ from typing import Any
 
 from .const import (
     TELNET_BUFFER_SIZE,
+    TELNET_DATA_STALENESS_TIMEOUT,
+    TELNET_MAX_CONSECUTIVE_TIMEOUTS,
     TELNET_MAX_RECONNECT_DELAY,
     TELNET_PORT,
     TELNET_RECONNECT_DELAY,
@@ -52,6 +54,7 @@ class HargassnerTelnetClient:
         # Background tasks
         self._receiver_task: asyncio.Task | None = None
         self._reconnect_delay = TELNET_RECONNECT_DELAY
+        self._consecutive_timeouts = 0
 
         # Message parser
         self._parser = HargassnerMessageParser(firmware_version)
@@ -118,6 +121,19 @@ class HargassnerTelnetClient:
                 if not self._connected:
                     await self._connect()
 
+                # Check for stale data (no data received for too long)
+                if self._last_update:
+                    time_since_update = (datetime.now() - self._last_update).total_seconds()
+                    if time_since_update > TELNET_DATA_STALENESS_TIMEOUT:
+                        _LOGGER.warning(
+                            "No data received for %.1f seconds, reconnecting",
+                            time_since_update,
+                        )
+                        self._stats["last_error"] = f"Data stale for {time_since_update:.1f}s"
+                        self._connected = False
+                        await self._close_connection()
+                        continue
+
                 # Read data
                 if self._reader:
                     try:
@@ -129,22 +145,41 @@ class HargassnerTelnetClient:
                         if not data:
                             _LOGGER.warning("Connection closed by server")
                             self._connected = False
+                            self._consecutive_timeouts = 0
                             continue
 
                         # Process received data
                         await self._process_data(data)
 
-                        # Reset reconnect delay on successful receive
+                        # Reset counters on successful receive
                         self._reconnect_delay = TELNET_RECONNECT_DELAY
+                        self._consecutive_timeouts = 0
 
                     except asyncio.TimeoutError:
-                        # Timeout is normal, just continue
+                        self._consecutive_timeouts += 1
+                        _LOGGER.debug(
+                            "Read timeout (%d/%d)",
+                            self._consecutive_timeouts,
+                            TELNET_MAX_CONSECUTIVE_TIMEOUTS,
+                        )
+
+                        # Too many consecutive timeouts - assume connection is dead
+                        if self._consecutive_timeouts >= TELNET_MAX_CONSECUTIVE_TIMEOUTS:
+                            _LOGGER.warning(
+                                "Connection appears dead after %d consecutive timeouts, reconnecting",
+                                self._consecutive_timeouts,
+                            )
+                            self._stats["last_error"] = f"Dead connection ({self._consecutive_timeouts} timeouts)"
+                            self._connected = False
+                            self._consecutive_timeouts = 0
+                            await self._close_connection()
                         continue
 
             except Exception as err:
                 _LOGGER.error("Error in receiver loop: %s", err, exc_info=True)
                 self._stats["last_error"] = str(err)
                 self._connected = False
+                self._consecutive_timeouts = 0
                 await self._close_connection()
 
                 # Exponential backoff for reconnection
@@ -164,7 +199,24 @@ class HargassnerTelnetClient:
                 timeout=TELNET_TIMEOUT,
             )
 
+            # Enable TCP keepalive to detect dead connections
+            sock = self._writer.get_extra_info("socket")
+            if sock:
+                sock.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
+                # Platform-specific keepalive settings
+                if hasattr(socket, "TCP_KEEPIDLE"):
+                    # Linux: start keepalive after 30s idle
+                    sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_KEEPIDLE, 30)
+                if hasattr(socket, "TCP_KEEPINTVL"):
+                    # Linux: send keepalive every 10s
+                    sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_KEEPINTVL, 10)
+                if hasattr(socket, "TCP_KEEPCNT"):
+                    # Linux: close after 3 failed keepalives
+                    sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_KEEPCNT, 3)
+                _LOGGER.debug("TCP keepalive enabled")
+
             self._connected = True
+            self._consecutive_timeouts = 0
             self._stats["reconnections"] += 1
             _LOGGER.debug("Connected to boiler")
 
