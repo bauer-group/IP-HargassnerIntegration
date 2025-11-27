@@ -5,6 +5,15 @@ Alle wichtigen Änderungen an diesem Projekt werden in dieser Datei dokumentiert
 Das Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/),
 und dieses Projekt folgt [Semantic Versioning](https://semver.org/lang/de/).
 
+## [0.2.2] - 2025-11-27
+
+### ✨ Improved
+
+- Sensor-Updates auf Push-Modus umgestellt ([coordinator.py](custom_components/bauergroup_hargassnerintegration/coordinator.py))
+  - **Push**: Sofortige Updates bei jedem empfangenen Datensatz vom Kessel (keine Messdaten verloren)
+  - **Manueller Poll**: `_async_update_data()` verfügbar für manuelle Refresh-Aufrufe
+  - Connection-Callback hinzugefügt für robuste Verbindungsstatus-Erkennung ([telnet_client.py](custom_components/bauergroup_hargassnerintegration/telnet_client.py))
+
 ## [0.2.1] - 2025-11-27
 
 ### 🐛 Fixed

@@ -7,7 +7,6 @@ import socket
 from asyncio import StreamReader, StreamWriter
 from collections.abc import Callable
 from datetime import datetime
-from typing import Any
 
 from .const import (
     TELNET_BUFFER_SIZE,
@@ -75,6 +74,7 @@ class HargassnerTelnetClient:
 
         # Callbacks
         self._data_callbacks: list[Callable[[dict[str, ParameterData]], None]] = []
+        self._connection_callbacks: list[Callable[[bool], None]] = []
 
     async def async_start(self) -> None:
         """Start the telnet client and background receiver task."""
@@ -131,7 +131,7 @@ class HargassnerTelnetClient:
                             time_since_update,
                         )
                         self._stats["last_error"] = f"Data stale for {time_since_update:.1f}s"
-                        self._connected = False
+                        self._set_connected(False)
                         await self._close_connection()
                         continue
 
@@ -145,7 +145,7 @@ class HargassnerTelnetClient:
 
                         if not data:
                             _LOGGER.warning("Connection closed by server")
-                            self._connected = False
+                            self._set_connected(False)
                             self._consecutive_timeouts = 0
                             continue
 
@@ -171,7 +171,7 @@ class HargassnerTelnetClient:
                                 self._consecutive_timeouts,
                             )
                             self._stats["last_error"] = f"Dead connection ({self._consecutive_timeouts} timeouts)"
-                            self._connected = False
+                            self._set_connected(False)
                             self._consecutive_timeouts = 0
                             await self._close_connection()
                         continue
@@ -179,7 +179,7 @@ class HargassnerTelnetClient:
             except Exception as err:
                 _LOGGER.error("Error in receiver loop: %s", err, exc_info=True)
                 self._stats["last_error"] = str(err)
-                self._connected = False
+                self._set_connected(False)
                 self._consecutive_timeouts = 0
                 await self._close_connection()
 
@@ -216,7 +216,7 @@ class HargassnerTelnetClient:
                     sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_KEEPCNT, 3)
                 _LOGGER.debug("TCP keepalive enabled")
 
-            self._connected = True
+            self._set_connected(True)
             self._consecutive_timeouts = 0
             self._stats["reconnections"] += 1
             _LOGGER.debug("Connected to boiler")
@@ -242,7 +242,7 @@ class HargassnerTelnetClient:
                 self._writer = None
                 self._reader = None
 
-        self._connected = False
+        self._set_connected(False)
 
     async def _process_data(self, data: bytes) -> None:
         """Process received telnet data.
@@ -331,6 +331,39 @@ class HargassnerTelnetClient:
         """
         if callback in self._data_callbacks:
             self._data_callbacks.remove(callback)
+
+    def register_connection_callback(self, callback: Callable[[bool], None]) -> None:
+        """Register a callback for connection state changes.
+
+        Args:
+            callback: Function to call when connection state changes (receives bool: connected)
+        """
+        if callback not in self._connection_callbacks:
+            self._connection_callbacks.append(callback)
+
+    def unregister_connection_callback(self, callback: Callable[[bool], None]) -> None:
+        """Unregister a connection state callback.
+
+        Args:
+            callback: Function to remove from callbacks
+        """
+        if callback in self._connection_callbacks:
+            self._connection_callbacks.remove(callback)
+
+    def _set_connected(self, connected: bool) -> None:
+        """Set connection state and notify callbacks.
+
+        Args:
+            connected: New connection state
+        """
+        if self._connected != connected:
+            self._connected = connected
+            _LOGGER.debug("Connection state changed to: %s", connected)
+            for callback in self._connection_callbacks:
+                try:
+                    callback(connected)
+                except Exception as err:
+                    _LOGGER.error("Error in connection callback: %s", err)
 
     @property
     def connected(self) -> bool:

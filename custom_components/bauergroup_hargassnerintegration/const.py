@@ -29,8 +29,8 @@ TELNET_BUFFER_SIZE: Final = 65536
 TELNET_MAX_CONSECUTIVE_TIMEOUTS: Final = 3  # Disconnect after this many timeouts
 TELNET_DATA_STALENESS_TIMEOUT: Final = 60.0  # Reconnect if no data for this many seconds
 
-# Update intervals
-UPDATE_INTERVAL: Final = 5  # seconds
+# Update intervals (legacy - now using push-based updates)
+# UPDATE_INTERVAL: Final = 5  # seconds - no longer used
 
 # Connection states
 STATE_CONNECTED: Final = "connected"
