@@ -122,6 +122,7 @@ class HargassnerTelnetClient:
                     await self._connect()
 
                 # Check for stale data (no data received for too long)
+                # The boiler sends data every few seconds when powered on
                 if self._last_update:
                     time_since_update = (datetime.now() - self._last_update).total_seconds()
                     if time_since_update > TELNET_DATA_STALENESS_TIMEOUT:

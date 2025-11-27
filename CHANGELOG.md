@@ -12,7 +12,7 @@ und dieses Projekt folgt [Semantic Versioning](https://semver.org/lang/de/).
 - Verbindungserkennung bei Stromausfall des Kessels korrigiert ([telnet_client.py](custom_components/bauergroup_hargassnerintegration/telnet_client.py))
   - **Problem**: Nach Stromausfall meldete Integration weiterhin "verbunden", obwohl Verbindung tot war
   - Konsekutive Timeout-Zählung: Nach 3 aufeinanderfolgenden Timeouts (30s) wird Verbindung als tot erkannt
-  - Daten-Staleness-Prüfung: Automatischer Reconnect wenn 60s keine Daten empfangen wurden
+  - Daten-Staleness-Prüfung: Automatischer Reconnect wenn 60s keine Daten empfangen (Kessel sendet alle paar Sekunden)
   - TCP-Keepalive aktiviert: OS-Level Erkennung toter Verbindungen (Linux: 30s idle, dann alle 10s prüfen)
   - Neue Konstanten in [const.py](custom_components/bauergroup_hargassnerintegration/const.py#L29): `TELNET_MAX_CONSECUTIVE_TIMEOUTS`, `TELNET_DATA_STALENESS_TIMEOUT`
 
