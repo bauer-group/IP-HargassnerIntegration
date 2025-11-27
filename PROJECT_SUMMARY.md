@@ -4,7 +4,7 @@
 
 Complete, professional Home Assistant custom component for Hargassner pellet boilers with telnet interface. Built from scratch using modern best practices.
 
-**Version:** 0.2.0
+**Version:** 0.2.1
 **Status:** Production Ready
 **License:** MIT
 
