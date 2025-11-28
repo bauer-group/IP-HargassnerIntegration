@@ -266,5 +266,5 @@ Bei Fragen oder Problemen:
 
 ---
 **Erstellt:** 2025-11-22
-**Version:** 0.2.2
+**Version:** 0.2.3
 **Status:** ✅ READY FOR PRODUCTION
