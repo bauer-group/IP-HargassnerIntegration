@@ -45,6 +45,8 @@ bauergroup_hargassnerintegration/
 
 ### Methode 1: HACS (Empfohlen)
 
+[![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=bauer-group&repository=IP-HargassnerIntegration&category=integration)
+
 1. Öffne HACS in Home Assistant
 2. Gehe zu "Integrationen"
 3. Klicke auf die drei Punkte oben rechts
