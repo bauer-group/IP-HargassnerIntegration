@@ -40,6 +40,7 @@ class HargassnerDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         super().__init__(
             hass,
             _LOGGER,
+            config_entry=entry,
             name=DOMAIN,
             # Pure push-based: Callbacks update sensors immediately when data arrives
             # No automatic polling - _async_update_data() available for manual refresh

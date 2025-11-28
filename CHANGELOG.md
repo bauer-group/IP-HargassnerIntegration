@@ -5,6 +5,18 @@ Alle wichtigen Änderungen an diesem Projekt werden in dieser Datei dokumentiert
 Das Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/),
 und dieses Projekt folgt [Semantic Versioning](https://semver.org/lang/de/).
 
+## [0.2.3] - 2025-11-28
+
+### 🐛 Fixed
+
+- Home Assistant Deprecation-Warnungen behoben (Issues [#2](https://github.com/bauer-group/IP-HargassnerIntegration/issues/2), [#3](https://github.com/bauer-group/IP-HargassnerIntegration/issues/3))
+  - **OptionsFlow**: Explizites Setzen von `self.config_entry` entfernt ([config_flow.py](custom_components/bauergroup_hargassnerintegration/config_flow.py)) - deprecated in HA 2025.12
+  - **DataUpdateCoordinator**: `config_entry` Parameter zu `super().__init__()` hinzugefügt ([coordinator.py](custom_components/bauergroup_hargassnerintegration/coordinator.py)) - erforderlich für `async_config_entry_first_refresh()` seit HA 2025.11
+
+### 📚 Docs
+
+- HACS Install-Button zu README.md, SCHNELLSTART.md und docs/INSTALLATION.md hinzugefügt
+
 ## [0.2.2] - 2025-11-27
 
 ### ✨ Improved
