@@ -245,7 +245,7 @@ custom_components/bauergroup_hargassnerintegration/
 
 **Sensor Sets:**
 
-- **STANDARD**: 13 predefined sensors (essential temperatures, output, stock, heating circuit, etc.)
+- **STANDARD**: 27 sensors (4 automatic + 23 parameters: temperatures, setpoints, efficiency, O2, etc.)
 - **FULL**: All available parameters from firmware template (varies by firmware version)
 
 ## Data Flow
@@ -415,7 +415,7 @@ Requires integration reload to apply.
 
 4. **Sensor Creation:**
    - Only requested sensors are created
-   - STANDARD mode: 16 entities (13 predefined + connection + state + error + energy)
+   - STANDARD mode: 27 entities (23 predefined + connection + state + error + energy)
    - FULL mode: All firmware parameters + 4 special sensors (varies by firmware)
 
 ## Extensibility

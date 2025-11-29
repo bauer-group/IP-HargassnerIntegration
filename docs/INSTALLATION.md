@@ -84,7 +84,7 @@ Press Ctrl+C to exit.
    - **Device Name:** Choose a friendly name (default: "Hargassner")
    - **Language:** Select EN (English) or DE (German)
    - **Sensor Set:**
-     - **STANDARD** - 16 essential sensors (temperatures, output, stock, etc.)
+     - **STANDARD** - 27 essential sensors (temperatures, setpoints, efficiency, O2, etc.)
      - **FULL** - All available sensors from firmware template (varies by version)
 
 5. Click **Submit**

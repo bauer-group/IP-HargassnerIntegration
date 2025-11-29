@@ -5,6 +5,26 @@ Alle wichtigen Änderungen an diesem Projekt werden in dieser Datei dokumentiert
 Das Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/),
 und dieses Projekt folgt [Semantic Versioning](https://semver.org/lang/de/).
 
+## [0.2.5] - 2025-11-29
+
+### ✨ Added
+
+- **Erweitertes Standard-Sensor-Set**: Von 17 auf 27 Sensoren erweitert ([sensor.py](custom_components/bauergroup_hargassnerintegration/sensor.py))
+  - Kessel Solltemperatur (TKsoll)
+  - Brennraumtemperatur (BRT)
+  - Wirkungsgrad (Effizienz)
+  - O2 Gehalt (O2)
+  - Saugzug Ist (SZist)
+  - Puffer Sollwert Oben/Unten (Puffer_soll oben/unten)
+  - Vorlauf Soll Heizkreis 1 (TVLs_1)
+  - Warmwasser Soll (TBs_1)
+
+### 📚 Docs
+
+- Dokumentation für erweitertes Standard-Sensor-Set aktualisiert
+  - README.md, SCHNELLSTART.md, ARCHITECTURE.md, INSTALLATION.md, PROJECT_SUMMARY.md
+- Code-Dokumentation in sensor.py verbessert mit Übersicht aller Standard-Sensoren
+
 ## [0.2.4] - 2025-11-29
 
 ### 🐛 Fixed

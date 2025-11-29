@@ -113,14 +113,14 @@ Then restart Home Assistant.
 
 | Set | Sensors | Use Case |
 |-----|---------|----------|
-| **STANDARD** | 17 sensors | Basic monitoring, dashboards |
+| **STANDARD** | 27 sensors | Basic monitoring, dashboards |
 | **FULL** | 228 sensors | Advanced diagnostics, all parameters |
 
 > 💡 **Tip:** Start with STANDARD, switch to FULL if you need detailed diagnostics.
 
 ## 📊 Available Sensors
 
-### STANDARD Set (17 Sensors)
+### STANDARD Set (27 Sensors)
 
 **Always Available (4):**
 
@@ -129,19 +129,40 @@ Then restart Home Assistant.
 - ⚠️ **Operation Status** - OK / Error messages
 - ⚡ **Heat Output** (Wärmemenge) - kWh (calculated from pellet consumption with configurable efficiency)
 
-**Core Parameters (13):**
+**Boiler & Combustion (8):**
 
 - 🌡️ **Boiler Temperature** (TK)
+- 🌡️ **Boiler Setpoint** (TKsoll)
 - 💨 **Flue Gas Temperature** (TRG)
-- 📈 **Output Power** (%)
-- 🌍 **Outside Temperature**
-- 🔵 **Buffer Top/Middle/Bottom** (3 sensors)
-- 💧 **Hot Water Temperature** (TB1)
-- ↩️ **Return Temperature** (TRL)
-- 📊 **Buffer Fill Level** (%)
-- 🪵 **Pellet Stock** (kg)
-- 📉 **Pellet Consumption** (kg)
+- 🔥 **Burner Temperature** (BRT)
+- 📈 **Output Power** (Leistung)
+- 📊 **Efficiency** (Effizienz)
+- 📉 **O2 Level** (O2)
+- 🌀 **Draft Actual** (SZist)
+
+**Buffer & Storage (6):**
+
+- 🔵 **Buffer Top/Middle/Bottom** (TPo, TPm, TPu)
+- 📊 **Buffer Fill Level** (Puff Füllgrad)
+- 🔼 **Buffer Setpoint Top** (Puffer_soll oben)
+- 🔽 **Buffer Setpoint Bottom** (Puffer_soll unten)
+
+**Heating Circuits (3):**
+
 - ➡️ **Flow Temperature HC1** (TVL_1)
+- 🎯 **Flow Setpoint HC1** (TVLs_1)
+- ↩️ **Return Temperature** (TRL)
+
+**Hot Water (2):**
+
+- 💧 **Hot Water Temperature** (TB1)
+- 🎯 **Hot Water Setpoint** (TBs_1)
+
+**Outside & Pellets (4):**
+
+- 🌍 **Outside Temperature** (Taus)
+- 🪵 **Pellet Stock** (Lagerstand)
+- 📉 **Pellet Consumption** (Verbrauchszähler)
 
 ### FULL Set (228 Sensors)
 

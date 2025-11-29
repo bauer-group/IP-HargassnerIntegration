@@ -110,8 +110,9 @@ pm <val0> <val1> <val2> ... <valN>
 5. **Energy Sensor** - kWh calculation from pellet consumption
 
 **Sensor Sets:**
-- **STANDARD** - 13 essential sensors
-- **FULL** - 30+ sensors (all available)
+
+- **STANDARD** - 27 sensors (4 automatic + 23 parameters)
+- **FULL** - All sensors from firmware template (varies by version)
 
 ### Layer 5: Configuration (`config_flow.py`)
 
@@ -211,23 +212,48 @@ hargassner_pellet:
   efficiency_percent: 90          # Boiler efficiency (50-100)
 ```
 
-## Available Sensors (Standard Set)
+## Available Sensors (Standard Set - 27 Sensors)
 
-1. Connection Status
-2. Boiler State (Off/Ignition/Full Firing/etc.)
-3. Operation Status (OK/Errors)
-4. Boiler Temperature (°C)
-5. Smoke Gas Temperature (°C)
-6. Output Power (%)
-7. Outside Temperature (°C)
-8. Buffer Temperature Top/Middle/Bottom (°C)
-9. Hot Water Temperature (°C)
-10. Return Temperature (°C)
-11. Buffer Fill Level (%)
-12. Pellet Stock (kg)
-13. Pellet Consumption (kg)
-14. Flow Temperature (°C)
-15. **Heat Output (kWh)** - Calculated from pellet consumption with configurable energy content and efficiency
+**Automatic Sensors (4):**
+
+- Connection Status
+- Boiler State (Off/Ignition/Full Firing/etc.)
+- Operation Status (OK/Errors)
+- Heat Output (kWh) - Calculated from pellet consumption
+
+**Boiler & Combustion (8):**
+
+- Boiler Temperature (TK)
+- Boiler Setpoint (TKsoll)
+- Flue Gas Temperature (TRG)
+- Burner Temperature (BRT)
+- Output Power (Leistung)
+- Efficiency (Effizienz)
+- O2 Level (O2)
+- Draft Actual (SZist)
+
+**Buffer & Storage (6):**
+
+- Buffer Top/Middle/Bottom (TPo, TPm, TPu)
+- Buffer Fill Level (Puff Füllgrad)
+- Buffer Setpoint Top/Bottom (Puffer_soll oben/unten)
+
+**Heating Circuits (3):**
+
+- Flow Temperature HC1 (TVL_1)
+- Flow Setpoint HC1 (TVLs_1)
+- Return Temperature (TRL)
+
+**Hot Water (2):**
+
+- Hot Water Temperature (TB1)
+- Hot Water Setpoint (TBs_1)
+
+**Outside & Pellets (3):**
+
+- Outside Temperature (Taus)
+- Pellet Stock (Lagerstand)
+- Pellet Consumption (Verbrauchszähler)
 
 ## Energy Dashboard Integration
 

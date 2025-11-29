@@ -85,7 +85,7 @@ Starte Home Assistant neu.
    - **Gerätename:** z.B. `Hargassner`
    - **Sprache:** `DE` (Deutsch)
    - **Sensor-Set:**
-     - `STANDARD` - 17 wichtigste Sensoren
+     - `STANDARD` - 27 wichtigste Sensoren
      - `FULL` - Alle 228 Sensoren aus dem Firmware-Template
    - **Heizwert Pellets:** `4.8` kWh/kg (Standard, kann angepasst werden)
    - **Wirkungsgrad:** `90` % (Standard, kann angepasst werden)
@@ -110,7 +110,7 @@ Diese Nachricht hat **138 Werte** und wird korrekt geparst zu:
 
 ## Verfügbare Sensoren
 
-### Sensor-Set: STANDARD (17 Sensoren)
+### Sensor-Set: STANDARD (27 Sensoren)
 
 **Immer verfügbar (4):**
 
@@ -119,21 +119,42 @@ Diese Nachricht hat **138 Werte** und wird korrekt geparst zu:
 3. **Betriebsstatus** - OK / Fehlermeldungen
 4. **Wärmemenge** - kWh (berechnet aus Pelletverbrauch mit Wirkungsgrad)
 
-**Standard-Parameter (13):**
+**Kessel & Verbrennung (8):**
 
-1. **Kesseltemperatur** (TK) - °C
-2. **Rauchgastemperatur** (TRG) - °C
-3. **Leistung** - %
-4. **Außentemperatur** - °C
-5. **Puffertemperatur Oben** (TPo) - °C
-6. **Puffertemperatur Mitte** (TPm) - °C
-7. **Puffertemperatur Unten** (TPu) - °C
-8. **Warmwassertemperatur** (TB1) - °C
-9. **Rücklauftemperatur** (TRL) - °C
-10. **Pufferfüllgrad** - %
-11. **Pelletvorrat** (Lagerstand) - kg
-12. **Pelletverbrauch** (Verbrauchszähler) - kg
-13. **Vorlauftemperatur 1** (TVL_1) - °C
+- **Kesseltemperatur** (TK) - °C
+- **Kessel Solltemperatur** (TKsoll) - °C
+- **Rauchgastemperatur** (TRG) - °C
+- **Brennraumtemperatur** (BRT) - °C
+- **Ausgangsleistung** (Leistung) - %
+- **Wirkungsgrad** (Effizienz) - %
+- **O2 Gehalt** (O2) - %
+- **Saugzug Ist** (SZist) - %
+
+**Puffer & Speicher (6):**
+
+- **Puffer Oben** (TPo) - °C
+- **Puffer Mitte** (TPm) - °C
+- **Puffer Unten** (TPu) - °C
+- **Pufferfüllgrad** (Puff Füllgrad) - %
+- **Puffer Sollwert Oben** (Puffer_soll oben) - °C
+- **Puffer Sollwert Unten** (Puffer_soll unten) - °C
+
+**Heizkreise (3):**
+
+- **Vorlauf Heizkreis 1** (TVL_1) - °C
+- **Vorlauf Soll Heizkreis 1** (TVLs_1) - °C
+- **Rücklauftemperatur** (TRL) - °C
+
+**Warmwasser (2):**
+
+- **Warmwasser** (TB1) - °C
+- **Warmwasser Soll** (TBs_1) - °C
+
+**Außentemperatur & Pellets (3):**
+
+- **Außentemperatur** (Taus) - °C
+- **Pelletvorrat** (Lagerstand) - kg
+- **Pelletverbrauch** (Verbrauchszähler) - kg
 
 ### Sensor-Set: FULL (228 Sensoren)
 
