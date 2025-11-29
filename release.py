@@ -266,6 +266,36 @@ def update_all_versions(version: str) -> list[Path]:
     return updated_files
 
 
+def extract_changelog_section(version: str) -> Optional[str]:
+    """
+    Extract the changelog section for a specific version.
+
+    Args:
+        version: Version string (e.g., "0.2.4")
+
+    Returns:
+        Changelog section content or None if not found
+    """
+    changelog_path = Path('CHANGELOG.md')
+
+    if not changelog_path.exists():
+        return None
+
+    with open(changelog_path, 'r', encoding='utf-8') as f:
+        content = f.read()
+
+    # Pattern to match version section: ## [X.X.X] - YYYY-MM-DD
+    # and capture everything until the next version section or end
+    pattern = rf'## \[{re.escape(version)}\][^\n]*\n(.*?)(?=\n## \[|\Z)'
+    match = re.search(pattern, content, re.DOTALL)
+
+    if match:
+        section = match.group(1).strip()
+        return section
+
+    return None
+
+
 def create_github_release(version: str) -> bool:
     """
     Create a GitHub release using gh CLI.
@@ -288,28 +318,19 @@ def create_github_release(version: str) -> bool:
         print(f"  https://github.com/bauer-group/IP-HargassnerIntegration/releases/new?tag={tag_name}")
         return False
 
-    # Generate release notes
-    release_title = f"Release v{version}"
-    release_notes = f"""## Release v{version}
+    # Try to extract changelog section for this version
+    changelog_section = extract_changelog_section(version)
 
-This release includes:
-- Version bump to v{version}
-- Updated manifest.json, SCHNELLSTART.md, and documentation
+    if changelog_section:
+        print_success(f"Found changelog section for v{version}")
+        release_notes = changelog_section
+    else:
+        print_info(f"No changelog section found for v{version}, using default text")
+        release_notes = f"""Version bump to v{version}
 
-### Installation via HACS
+See [CHANGELOG.md](https://github.com/bauer-group/IP-HargassnerIntegration/blob/main/CHANGELOG.md) for details."""
 
-1. Open HACS in Home Assistant
-2. Go to "Integrations"
-3. Search for "BAUERGROUP Hargassner"
-4. Update to version v{version}
-
-### Manual Installation
-
-Download the latest release and copy `custom_components/bauergroup_hargassnerintegration` to your Home Assistant config directory.
-
----
-🤖 Generated with automated release script
-"""
+    release_title = f"v{version}"
 
     # Create release
     try:
