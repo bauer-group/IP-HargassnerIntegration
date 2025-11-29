@@ -11,8 +11,6 @@ from datetime import datetime
 from .const import (
     TELNET_BUFFER_SIZE,
     TELNET_DATA_STALENESS_TIMEOUT,
-    TELNET_MAX_CONSECUTIVE_TIMEOUTS,
-    TELNET_MAX_RECONNECT_DELAY,
     TELNET_PORT,
     TELNET_RECONNECT_DELAY,
     TELNET_TIMEOUT,
@@ -52,8 +50,6 @@ class HargassnerTelnetClient:
 
         # Background tasks
         self._receiver_task: asyncio.Task | None = None
-        self._reconnect_delay = TELNET_RECONNECT_DELAY
-        self._consecutive_timeouts = 0
 
         # Message parser
         self._parser = HargassnerMessageParser(firmware_version)
@@ -114,12 +110,22 @@ class HargassnerTelnetClient:
         await self._close_connection()
 
     async def _receiver_loop(self) -> None:
-        """Background loop that receives and processes telnet messages."""
+        """Background loop that receives and processes telnet messages.
+
+        Simple reconnect logic:
+        1. TCP connection lost (OS-level) -> disconnect and reconnect
+        2. No data received for 60s -> disconnect and reconnect
+        """
         while self._running:
             try:
                 # Ensure connection
                 if not self._connected:
-                    await self._connect()
+                    try:
+                        await self._connect()
+                    except (HargassnerConnectionError, HargassnerTimeoutError):
+                        # Wait before retry
+                        await asyncio.sleep(TELNET_RECONNECT_DELAY)
+                        continue
 
                 # Check for stale data (no data received for too long)
                 # The boiler sends data every few seconds when powered on
@@ -131,7 +137,6 @@ class HargassnerTelnetClient:
                             time_since_update,
                         )
                         self._stats["last_error"] = f"Data stale for {time_since_update:.1f}s"
-                        self._set_connected(False)
                         await self._close_connection()
                         continue
 
@@ -144,51 +149,30 @@ class HargassnerTelnetClient:
                         )
 
                         if not data:
+                            # TCP connection closed by server
                             _LOGGER.warning("Connection closed by server")
-                            self._set_connected(False)
-                            self._consecutive_timeouts = 0
+                            await self._close_connection()
                             continue
 
                         # Process received data
                         await self._process_data(data)
 
-                        # Reset counters on successful receive
-                        self._reconnect_delay = TELNET_RECONNECT_DELAY
-                        self._consecutive_timeouts = 0
-
                     except asyncio.TimeoutError:
-                        self._consecutive_timeouts += 1
-                        _LOGGER.debug(
-                            "Read timeout (%d/%d)",
-                            self._consecutive_timeouts,
-                            TELNET_MAX_CONSECUTIVE_TIMEOUTS,
-                        )
-
-                        # Too many consecutive timeouts - assume connection is dead
-                        if self._consecutive_timeouts >= TELNET_MAX_CONSECUTIVE_TIMEOUTS:
-                            _LOGGER.warning(
-                                "Connection appears dead after %d consecutive timeouts, reconnecting",
-                                self._consecutive_timeouts,
-                            )
-                            self._stats["last_error"] = f"Dead connection ({self._consecutive_timeouts} timeouts)"
-                            self._set_connected(False)
-                            self._consecutive_timeouts = 0
-                            await self._close_connection()
+                        # Timeout is normal, just continue - staleness check handles dead connections
                         continue
+
+            except OSError as err:
+                # TCP connection lost (OS-level error)
+                _LOGGER.warning("TCP connection lost: %s", err)
+                self._stats["last_error"] = str(err)
+                await self._close_connection()
+                await asyncio.sleep(TELNET_RECONNECT_DELAY)
 
             except Exception as err:
                 _LOGGER.error("Error in receiver loop: %s", err, exc_info=True)
                 self._stats["last_error"] = str(err)
-                self._set_connected(False)
-                self._consecutive_timeouts = 0
                 await self._close_connection()
-
-                # Exponential backoff for reconnection
-                await asyncio.sleep(self._reconnect_delay)
-                self._reconnect_delay = min(
-                    self._reconnect_delay * 2,
-                    TELNET_MAX_RECONNECT_DELAY,
-                )
+                await asyncio.sleep(TELNET_RECONNECT_DELAY)
 
     async def _connect(self) -> None:
         """Establish telnet connection to the boiler."""
@@ -217,7 +201,6 @@ class HargassnerTelnetClient:
                 _LOGGER.debug("TCP keepalive enabled")
 
             self._set_connected(True)
-            self._consecutive_timeouts = 0
             self._stats["reconnections"] += 1
             _LOGGER.debug("Connected to boiler")
 

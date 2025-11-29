@@ -24,9 +24,7 @@ SENSOR_SET_FULL: Final = "FULL"
 TELNET_PORT: Final = 23
 TELNET_TIMEOUT: Final = 10.0
 TELNET_RECONNECT_DELAY: Final = 5.0
-TELNET_MAX_RECONNECT_DELAY: Final = 300.0
 TELNET_BUFFER_SIZE: Final = 65536
-TELNET_MAX_CONSECUTIVE_TIMEOUTS: Final = 3  # Disconnect after this many timeouts
 TELNET_DATA_STALENESS_TIMEOUT: Final = 60.0  # Reconnect if no data for this many seconds
 
 # Update intervals (legacy - now using push-based updates)

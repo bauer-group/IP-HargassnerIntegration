@@ -5,6 +5,26 @@ Alle wichtigen Änderungen an diesem Projekt werden in dieser Datei dokumentiert
 Das Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/),
 und dieses Projekt folgt [Semantic Versioning](https://semver.org/lang/de/).
 
+## [0.2.4] - 2025-11-29
+
+### 🐛 Fixed
+
+- **Reconnect-Mechanismus**: Vereinfacht und korrigiert ([telnet_client.py](custom_components/bauergroup_hargassnerintegration/telnet_client.py))
+  - Entfernt: Komplexe consecutive-timeout Logik und exponential backoff die HA-Prozess überlasteten
+  - Reconnect nur bei: TCP-Verbindungsverlust (OS-Level) oder 60s keine Daten empfangen
+  - Einfacher 5s Reconnect-Delay zwischen Versuchen
+
+- **Störungs-Sensor**: Vereinfacht ([sensor.py](custom_components/bauergroup_hargassnerintegration/sensor.py))
+  - Verwendet nur noch `Störungs Nr`: 0 = OK, >0 = Störungscode
+
+- **Sensorwerte bei Verbindungsverlust**: Zeigen jetzt "unknown" statt alte Werte ([coordinator.py](custom_components/bauergroup_hargassnerintegration/coordinator.py))
+  - Bei Verbindungsverlust werden Sensordaten gelöscht
+  - Sensoren gehen auf "unknown" bis neue Daten empfangen werden
+
+### 🗑️ Removed
+
+- Nicht mehr benötigte Konstanten: `TELNET_MAX_RECONNECT_DELAY`, `TELNET_MAX_CONSECUTIVE_TIMEOUTS` ([const.py](custom_components/bauergroup_hargassnerintegration/const.py))
+
 ## [0.2.3] - 2025-11-28
 
 ### 🐛 Fixed

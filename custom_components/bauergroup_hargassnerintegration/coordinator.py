@@ -77,15 +77,20 @@ class HargassnerDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         """
         _LOGGER.debug("Connection state changed: %s", connected)
 
-        # Update existing data with new connection state, or create minimal data
-        current_data = self.data or {}
+        if connected:
+            # Keep existing data when connected
+            current_data = self.data or {}
+        else:
+            # Clear sensor data when disconnected - sensors will show "unknown"
+            current_data = {}
+
         current_data["_connection"] = {
             "connected": connected,
             "last_update": self.telnet_client.last_update,
             "statistics": self.telnet_client.statistics,
         }
 
-        # Push update to refresh connection sensor
+        # Push update to refresh all sensors
         self.async_set_updated_data(current_data)
 
     async def _async_update_data(self) -> dict[str, Any]:
