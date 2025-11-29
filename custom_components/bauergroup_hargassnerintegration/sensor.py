@@ -294,30 +294,24 @@ class HargassnerErrorSensor(HargassnerBaseSensor):
     @property
     def native_value(self) -> str:
         """Return error status."""
-        # Check digital "Störung" bit sensor
-        error_data = self.coordinator.data.get("Störung")
-
-        if not error_data:
-            return "OK"
-
-        error_value = error_data.get("value")
-
-        # Check if error is active
-        if not error_value or error_value == "False" or error_value is False:
-            return "OK"
-
         # Get error code from "Störungs Nr" analog parameter
+        # 0 = no error, >0 = error code
         error_code_data = self.coordinator.data.get("Störungs Nr")
-        if error_code_data:
-            error_code = str(error_code_data.get("value", ""))
-            error_info = ERROR_CODES.get(error_code)
 
-            if error_info:
-                return error_info[self._language.lower()]
+        if not error_code_data:
+            return "OK"
 
-            return f"Error {error_code}"
+        error_code = str(int(error_code_data.get("value", 0)))
 
-        return "Error"
+        if error_code == "0":
+            return "OK"
+
+        # Error is present - look up description
+        error_info = ERROR_CODES.get(error_code)
+        if error_info:
+            return error_info[self._language.lower()]
+
+        return f"Error {error_code}"
 
     @property
     def icon(self) -> str:
