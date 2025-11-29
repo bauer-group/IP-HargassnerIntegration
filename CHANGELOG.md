@@ -21,6 +21,9 @@ und dieses Projekt folgt [Semantic Versioning](https://semver.org/lang/de/).
   - Bei Verbindungsverlust werden Sensordaten gelöscht
   - Sensoren gehen auf "unknown" bis neue Daten empfangen werden
 
+- **Firmware V14_1HAR_q1**: Warmwasser-Parameter korrigiert ([firmware_templates.py](custom_components/bauergroup_hargassnerintegration/firmware_templates.py))
+  - `TB1` (Warmwasser Ist) und `TBs_1` (Warmwasser Soll) waren vertauscht
+
 ### 🗑️ Removed
 
 - Nicht mehr benötigte Konstanten: `TELNET_MAX_RECONNECT_DELAY`, `TELNET_MAX_CONSECUTIVE_TIMEOUTS` ([const.py](custom_components/bauergroup_hargassnerintegration/const.py))
