@@ -43,22 +43,49 @@ from .coordinator import HargassnerDataUpdateCoordinator
 _LOGGER = logging.getLogger(__name__)
 
 
-# Sensor definitions: (key, name, device_class, state_class, icon)
-# Note: Keys must match the exact parameter names from the firmware template XML
+# =============================================================================
+# STANDARD SENSOR SET
+# =============================================================================
+# Das Standard-Sensor-Set umfasst 27 Sensoren für die wichtigsten Kesselwerte.
+#
+# Automatisch erstellte Sensoren (immer aktiv, bei STANDARD und FULL):
+#   - Verbindung        : Telnet-Verbindungsstatus (connected/disconnected)
+#   - Betriebsstatus    : Aktueller Kesselzustand (ZK-Wert als Text)
+#   - Störung           : Aktive Störungsnummer und Beschreibung
+#   - Wärmemenge        : Berechnete Wärmeenergie in kWh (Pelletverbrauch × Energiegehalt × Wirkungsgrad)
+#
+# Parameter-Sensoren (key, name, device_class, state_class, icon):
+#   Keys müssen exakt den Parameternamen aus dem Firmware-Template entsprechen.
+# =============================================================================
 STANDARD_SENSORS = [
+    # --- Kessel & Verbrennung ---
     ("TK", "Kesseltemperatur", SensorDeviceClass.TEMPERATURE, SensorStateClass.MEASUREMENT, "mdi:thermometer"),
+    ("TKsoll", "Kessel Solltemperatur", SensorDeviceClass.TEMPERATURE, SensorStateClass.MEASUREMENT, "mdi:thermometer-lines"),
     ("TRG", "Rauchgastemperatur", SensorDeviceClass.TEMPERATURE, SensorStateClass.MEASUREMENT, "mdi:smoke"),
-    ("Leistung", "Ausgangsleistung", None, SensorStateClass.MEASUREMENT, "mdi:fire"),
-    ("Taus", "Außentemperatur", SensorDeviceClass.TEMPERATURE, SensorStateClass.MEASUREMENT, "mdi:thermometer"),
+    ("BRT", "Brennraumtemperatur", SensorDeviceClass.TEMPERATURE, SensorStateClass.MEASUREMENT, "mdi:fire"),
+    ("Leistung", "Ausgangsleistung", None, SensorStateClass.MEASUREMENT, "mdi:gauge"),
+    ("Effizienz", "Wirkungsgrad", None, SensorStateClass.MEASUREMENT, "mdi:speedometer"),
+    ("O2", "O2 Gehalt", None, SensorStateClass.MEASUREMENT, "mdi:chart-line"),
+    ("SZist", "Saugzug Ist", None, SensorStateClass.MEASUREMENT, "mdi:fan"),
+    # --- Puffer & Speicher ---
     ("TPo", "Puffer Oben", SensorDeviceClass.TEMPERATURE, SensorStateClass.MEASUREMENT, "mdi:thermometer-lines"),
     ("TPm", "Puffer Mitte", SensorDeviceClass.TEMPERATURE, SensorStateClass.MEASUREMENT, "mdi:thermometer-lines"),
     ("TPu", "Puffer Unten", SensorDeviceClass.TEMPERATURE, SensorStateClass.MEASUREMENT, "mdi:thermometer-lines"),
-    ("TB1", "Warmwasser", SensorDeviceClass.TEMPERATURE, SensorStateClass.MEASUREMENT, "mdi:water-boiler"),
+    ("Puff Füllgrad", "Pufferfüllgrad", None, SensorStateClass.MEASUREMENT, "mdi:battery-medium"),
+    ("Puffer_soll oben", "Puffer Sollwert Oben", SensorDeviceClass.TEMPERATURE, SensorStateClass.MEASUREMENT, "mdi:thermometer-plus"),
+    ("Puffer_soll unten", "Puffer Sollwert Unten", SensorDeviceClass.TEMPERATURE, SensorStateClass.MEASUREMENT, "mdi:thermometer-minus"),
+    # --- Heizkreise ---
+    ("TVL_1", "Vorlauf Heizkreis 1", SensorDeviceClass.TEMPERATURE, SensorStateClass.MEASUREMENT, "mdi:coolant-temperature"),
+    ("TVLs_1", "Vorlauf Soll Heizkreis 1", SensorDeviceClass.TEMPERATURE, SensorStateClass.MEASUREMENT, "mdi:target"),
     ("TRL", "Rücklauftemperatur", SensorDeviceClass.TEMPERATURE, SensorStateClass.MEASUREMENT, "mdi:coolant-temperature"),
-    ("Puff Füllgrad", "Pufferfüllgrad", None, SensorStateClass.MEASUREMENT, "mdi:gauge"),
+    # --- Warmwasser ---
+    ("TB1", "Warmwasser", SensorDeviceClass.TEMPERATURE, SensorStateClass.MEASUREMENT, "mdi:water-boiler"),
+    ("TBs_1", "Warmwasser Soll", SensorDeviceClass.TEMPERATURE, SensorStateClass.MEASUREMENT, "mdi:target"),
+    # --- Außentemperatur ---
+    ("Taus", "Außentemperatur", SensorDeviceClass.TEMPERATURE, SensorStateClass.MEASUREMENT, "mdi:thermometer"),
+    # --- Pellets ---
     ("Lagerstand", "Pelletvorrat", None, SensorStateClass.TOTAL, "mdi:silo"),
     ("Verbrauchszähler", "Pelletverbrauch", None, SensorStateClass.TOTAL_INCREASING, "mdi:counter"),
-    ("TVL_1", "Vorlauf Heizkreis 1", SensorDeviceClass.TEMPERATURE, SensorStateClass.MEASUREMENT, "mdi:coolant-temperature"),
 ]
 
 
