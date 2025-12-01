@@ -5,6 +5,16 @@ Alle wichtigen Änderungen an diesem Projekt werden in dieser Datei dokumentiert
 Das Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/),
 und dieses Projekt folgt [Semantic Versioning](https://semver.org/lang/de/).
 
+## [0.2.6] - 2025-12-01
+
+### 🐛 Fixed
+
+- **Kritischer Reconnect-Bug behoben**: Endlose Reconnect-Schleife korrigiert ([telnet_client.py](custom_components/bauergroup_hargassnerintegration/telnet_client.py))
+  - **Problem**: `_last_update` wurde bei `_close_connection()` nicht zurückgesetzt, was zu sofortiger erneuter Staleness-Erkennung nach Reconnect führte (13.000+ Reconnects)
+  - **Fix 1**: `_last_update = None` bei Verbindungsabbruch setzen
+  - **Fix 2**: Delay nach Staleness-Disconnect hinzugefügt (`TELNET_RECONNECT_DELAY`)
+  - **Fix 3**: Initiale Verbindung wird nicht mehr als Reconnection gezählt
+
 ## [0.2.5] - 2025-11-29
 
 ### ✨ Added

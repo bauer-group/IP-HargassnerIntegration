@@ -138,6 +138,7 @@ class HargassnerTelnetClient:
                         )
                         self._stats["last_error"] = f"Data stale for {time_since_update:.1f}s"
                         await self._close_connection()
+                        await asyncio.sleep(TELNET_RECONNECT_DELAY)
                         continue
 
                 # Read data
@@ -201,8 +202,12 @@ class HargassnerTelnetClient:
                 _LOGGER.debug("TCP keepalive enabled")
 
             self._set_connected(True)
-            self._stats["reconnections"] += 1
-            _LOGGER.debug("Connected to boiler")
+            # Only count as reconnection if we had a previous connection
+            if self._stats["reconnections"] > 0 or self._stats["messages_received"] > 0:
+                self._stats["reconnections"] += 1
+                _LOGGER.info("Reconnected to boiler (reconnection #%d)", self._stats["reconnections"])
+            else:
+                _LOGGER.debug("Initial connection to boiler established")
 
         except asyncio.TimeoutError as err:
             _LOGGER.error("Connection timeout: %s", err)
@@ -225,6 +230,8 @@ class HargassnerTelnetClient:
                 self._writer = None
                 self._reader = None
 
+        # Reset last_update to prevent immediate staleness detection after reconnect
+        self._last_update = None
         self._set_connected(False)
 
     async def _process_data(self, data: bytes) -> None:
