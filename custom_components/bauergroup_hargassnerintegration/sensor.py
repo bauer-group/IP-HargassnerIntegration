@@ -39,6 +39,7 @@ from .const import (
     STATE_DISCONNECTED,
 )
 from .coordinator import HargassnerDataUpdateCoordinator
+from .firmware_templates import PARAMETER_DESCRIPTIONS
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -165,12 +166,14 @@ async def async_setup_entry(
         # STANDARD mode: Only create predefined sensors
         for sensor_def in STANDARD_SENSORS:
             key, name, device_class, state_class, icon = sensor_def
+            desc = PARAMETER_DESCRIPTIONS.get(key, {})
+            display_name = desc.get(language.lower(), name)
             entities.append(
                 HargassnerParameterSensor(
                     coordinator,
                     entry,
                     key,
-                    name,  # No device prefix - handled by has_entity_name
+                    display_name,  # No device prefix - handled by has_entity_name
                     device_class,
                     state_class,
                     icon,
