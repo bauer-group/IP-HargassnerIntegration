@@ -5,6 +5,31 @@ Alle wichtigen Änderungen an diesem Projekt werden in dieser Datei dokumentiert
 Das Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/),
 und dieses Projekt folgt [Semantic Versioning](https://semver.org/lang/de/).
 
+## [0.2.8] - 2026-01-19
+
+### 🐛 Fixed
+
+- **V14_0HAR_q Template: Heizkreis-Parameter korrigiert** ([Issue #10](https://github.com/bauer-group/IP-HargassnerIntegration/issues/10))
+  - Vorlauf-Ist und Vorlauf-Soll Positionen für HK1/HK2 korrigiert
+  - Neuer Parameter `HK1 Status` bei Position 65 hinzugefügt
+  - Korrigierte Zuordnung: Position 66 = TVL_1 (Vorlauf Ist), Position 67 = TVLs_1 (Vorlauf Soll)
+  - Community-Feedback von [@MiOrt](https://github.com/MiOrt) mit Telnet-Analyse
+
+- **V14_0HAR_q Template: Sonderzeichen normalisiert** ([Issue #9](https://github.com/bauer-group/IP-HargassnerIntegration/issues/9))
+  - `Verbrauchsz°hler` → `Verbrauchszaehler`
+  - `Störung` → `Stoerung`
+  - `Puff Füllgrad` → `Puff Fuellgrad`
+  - `T Spülung` → `T Spuelung`
+  - `LZ ES seit F°ll.` → `LZ ES seit Fuell.`
+  - Entity-IDs jetzt sauber ohne `deg`-Artefakte
+
+### 📚 Docs
+
+- **Dokumentation für Input DateTime Helper** ([Issue #5](https://github.com/bauer-group/IP-HargassnerIntegration/issues/5))
+  - Neuer Schritt 2 in [CUSTOM_DASHBOARD.md](docs/CUSTOM_DASHBOARD.md): Anleitung zur Erstellung des `input_datetime.hg_pk32_pelletverbrauch_startzeit` Helpers
+  - Option A (UI) und Option B (YAML) dokumentiert
+  - Troubleshooting-Abschnitt für Prognose-Sensoren hinzugefügt
+
 ## [0.2.7] - 2026-01-12
 
 ### ✨ Added
