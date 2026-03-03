@@ -60,8 +60,10 @@
 
 | Model | Firmware | Status |
 |-------|----------|--------|
-| Nano-PK | V14_1HAR_q1 | ✅ Fully tested |
+| Nano-PK 20 | V14_1HAR_q1 | ✅ Fully tested |
+| Nano-PK 20 + Solar/3HK | V14_1HAR_q1_solar | 🧪 Community tested (contributed by [@tvieider](https://github.com/tvieider)) |
 | Nano-PK | V14_0HAR_q | 🧪 Community tested (contributed by [@notecp](https://github.com/notecp)) |
+| Nano 65 | V40_0HAR_az15 | 🧪 Community tested (contributed by [@marianhoenscheid](https://github.com/marianhoenscheid)) |
 | Classic Lambda 40L-60L | V14_0m5 | 🧪 Community tested (contributed by [@philippe44](https://github.com/philippe44)) |
 | Other Hargassner models | Custom | ⚠️ Requires firmware template |
 

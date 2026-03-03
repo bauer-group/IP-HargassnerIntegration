@@ -5,6 +5,40 @@ Alle wichtigen Änderungen an diesem Projekt werden in dieser Datei dokumentiert
 Das Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/),
 und dieses Projekt folgt [Semantic Versioning](https://semver.org/lang/de/).
 
+## [0.2.9] - 2026-03-03
+
+### ✨ Added
+
+- **Firmware-Unterstützung für Nano.2 20 + Solar/3HK (V14_1HAR_q1_solar)** ([Issue #11](https://github.com/bauer-group/IP-HargassnerIntegration/issues/11))
+  - Community-Beitrag von [@tvieider](https://github.com/tvieider) via DAQ-Template
+  - 132 Analog-Parameter (inkl. 3 Dummy-Kanäle für Board-Alignment)
+  - Solar-Parameter: DiffR3TWq, DiffR3 K1/K2, DiffR3TDiff1/TDiff2, DiffR3 P1/P2/P3, DiffR3 WMZ
+  - AUP-Parameter: AUPSoll, AUPIst, AUPStrom
+  - Füllstand und BoiZustand_1
+
+- **Firmware-Unterstützung für Nano 65 (V40_0HAR_az15)** ([PR #13](https://github.com/bauer-group/IP-HargassnerIntegration/pull/13))
+  - Community-Beitrag von [@marianhoenscheid](https://github.com/marianhoenscheid)
+
+### 🐛 Fixed
+
+- **Cross-Template Parameter-Kompatibilität** ([Issue #12](https://github.com/bauer-group/IP-HargassnerIntegration/issues/12))
+  - Neues `_PARAM_NAME_ALIASES`-System in [sensor.py](custom_components/bauergroup_hargassnerintegration/sensor.py) für bidirektionale Umlaut↔ASCII Zuordnung
+  - Wärmemenge-Sensor funktioniert jetzt korrekt mit V14_0HAR_q Template (`Verbrauchszaehler` ↔ `Verbrauchszähler`)
+  - Störungs-Sensor Lookup korrigiert (`Stoerungs Nr` ↔ `Störungs Nr`)
+
+- **V14_0HAR_q Template: Tippfehler korrigiert** ([Issue #12](https://github.com/bauer-group/IP-HargassnerIntegration/issues/12))
+  - `Storungs Nr` → `Stoerungs Nr` (fehlender Buchstabe)
+
+- **DAQ-Parser Encoding verbessert** ([tools/daq_parser.py](tools/daq_parser.py))
+  - CP1252 als primäres Encoding priorisiert (Windows-Standard für DAQ-Dateien)
+  - Sonderzeichen (°, ä, ö, ü) werden jetzt korrekt gelesen statt ersetzt
+
+### ✨ Improved
+
+- **FULL-Modus Anzeigenamen für V14_0HAR_q** ([firmware_templates.py](custom_components/bauergroup_hargassnerintegration/firmware_templates.py))
+  - ASCII-Varianten in `PARAMETER_DESCRIPTIONS` ergänzt (Verbrauchszaehler, Stoerungs Nr, Puff Fuellgrad, etc.)
+  - FULL-Modus zeigt jetzt korrekte zweisprachige Beschreibungen statt Roh-Parameternamen
+
 ## [0.2.8] - 2026-01-19
 
 ### 🐛 Fixed
