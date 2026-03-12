@@ -364,7 +364,12 @@ class HargassnerErrorSensor(HargassnerBaseSensor):
         if error_info:
             return error_info[self._language.lower()]
 
-        return f"Error {error_code}"
+        # Unknown error code - add to options dynamically for ENUM compatibility
+        lang = self._language.lower()
+        fallback = f"Error {error_code}" if lang == "en" else f"Fehler {error_code}"
+        if fallback not in self._attr_options:
+            self._attr_options.append(fallback)
+        return fallback
 
     @property
     def icon(self) -> str:
