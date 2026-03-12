@@ -5,6 +5,16 @@ Alle wichtigen Änderungen an diesem Projekt werden in dieser Datei dokumentiert
 Das Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/),
 und dieses Projekt folgt [Semantic Versioning](https://semver.org/lang/de/).
 
+## [0.3.1] - 2026-03-12
+
+### 🐛 Fixed
+
+- **Fehlende/falsche Fehlercodes + Fallback für unbekannte Codes** ([Issue #16](https://github.com/bauer-group/IP-HargassnerIntegration/issues/16))
+  - Community-Beitrag von [@mkaufmann0983](https://github.com/mkaufmann0983)
+  - `ERROR_CODES` von 15 auf 294 Einträge erweitert (Quelle: offizielles Hargassner Nano-PK Manual)
+  - Fehlercode 380 korrigiert: "Wartung fällig, Werkswartung durchführen lassen"
+  - Dynamischer Fallback für unbekannte Fehlercodes — verhindert "Unknown"-Status in Home Assistant
+
 ## [0.3.0] - 2026-03-03
 
 ### ✨ Added
