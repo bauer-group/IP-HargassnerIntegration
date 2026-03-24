@@ -5,6 +5,29 @@ Alle wichtigen Änderungen an diesem Projekt werden in dieser Datei dokumentiert
 Das Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/),
 und dieses Projekt folgt [Semantic Versioning](https://semver.org/lang/de/).
 
+## [0.3.2] - UNRELEASED
+
+### 🐛 Fixed
+
+- **Pelletverbrauch-Hochrechnung: HDD-Berechnung monatsgenau statt Tagesdurchschnitt**
+  - Sensor `hdd_norm_zeitraum` verwendete einen flachen Durchschnitt (`2798 / 365 ≈ 7,67 HDD/Tag`), unabhängig von der saisonalen Verteilung
+  - Im Winter (Hauptmessperiode) wurden die HDD massiv unterschätzt → Effizienz (kg/HDD) viel zu hoch → alle Prognosen um Faktor 5–10× überhöht
+  - Neuer Sensor summiert die anteiligen VDI 4710 Norm-HDD monatsweise vom Startdatum bis heute (Start-/Endmonat tagesgenau anteilig)
+  - Betrifft: Jahresprognose, Monatsprognose, Restjahr-Prognose, Effizienz kg/HDD
+
+- **Pelletverbrauch-Hochrechnung: Startwert-Offset für kumulativen Zähler**
+  - Neuer `input_number.hg_pk32_pelletverbrauch_startwert` Helper speichert den Zählerstand bei Messbeginn
+  - Effizienz-Sensor berechnet jetzt `(aktueller Zähler - Startwert) / HDD` statt `Zähler / HDD`
+  - Verhindert Verfälschung bei Zählerständen die nicht bei 0 beginnen
+
+### ✨ Improved
+
+- **Dashboard YAML aktualisiert** auf den aktuellen Produktiv-Stand
+  - Kessel-Solltemperatur, Puffer-Sollwerte (Min/Max) in der Übersicht ergänzt
+  - Heizraum-Temperatursensoren (THD-005) hinzugefügt
+  - ApexCharts 30-Tage-Übersicht mit optimierter Konfiguration (yaxis, transform, columnWidth)
+  - Warmwasser-Entity auf `warmwasser_b` korrigiert
+
 ## [0.3.1] - 2026-03-12
 
 ### 🐛 Fixed

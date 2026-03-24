@@ -34,9 +34,10 @@ Erstelle oder erweitere die Datei `templates.yaml` in deinem Home Assistant Konf
 - sensor:
     ############################################################################
     # Pelletverbrauch – HDD/VDI 4710 basierte Hochrechnung
-    # Nutzt ausschließlich:
-    #   sensor.hg_pk32_pelletverbrauch
-    #   input_datetime.hg_pk32_pelletverbrauch_startzeit
+    # Nutzt:
+    #   sensor.hg_pk32_pelletverbrauch          (kumulativer Zähler)
+    #   input_datetime.hg_pk32_pelletverbrauch_startzeit  (Beginn Messzeitraum)
+    #   input_number.hg_pk32_pelletverbrauch_startwert    (Zählerstand bei Start)
     ############################################################################
 
     ###########################################################################
@@ -75,32 +76,94 @@ Erstelle oder erweitere die Datei `templates.yaml` in deinem Home Assistant Konf
         {% endif %}
 
     ###########################################################################
-    # 4) HDD im Zeitraum
+    # 4) HDD im Zeitraum (monatsgenau statt Tagesdurchschnitt)
+    #    Summiert die anteiligen Norm-HDD für jeden Monat im Messzeitraum.
+    #    Start- und Endmonat werden tagesgenau anteilig berechnet.
     ###########################################################################
     - name: "hdd_norm_zeitraum"
       unique_id: hdd_norm_zeitraum
       unit_of_measurement: "HDD"
       state: >
-        {% set tage_raw = states('sensor.pelletverbrauch_zeitraum_tage') %}
-        {% if tage_raw in ['unknown','unavailable','none','None','','null'] %}
+        {% set ts = state_attr('input_datetime.hg_pk32_pelletverbrauch_startzeit','timestamp') %}
+        {% if ts is none or ts == '' %}
           0
         {% else %}
-          {% set tage = tage_raw | float %}
-          {% set hdd_tag = 2798 / 365 %}
-          {{ (tage * hdd_tag) | round(2) }}
+          {% set hdd = {
+            1: 496, 2: 413, 3: 341, 4: 232, 5: 118, 6: 34,
+            7: 17, 8: 27, 9: 86, 10: 215, 11: 370, 12: 449
+          } %}
+          {% set start = ts | as_datetime | as_local %}
+          {% set ende = now() %}
+
+          {% set s_jahr = start.year %}
+          {% set s_monat = start.month %}
+          {% set s_tag = start.day %}
+          {% set e_jahr = ende.year %}
+          {% set e_monat = ende.month %}
+          {% set e_tag = ende.day %}
+
+          {# Hilfsfunktion: Tage im Monat berechnen #}
+          {% set ns = namespace(sum=0.0) %}
+
+          {# Gesamtmonate seit Epoch für Start und Ende #}
+          {% set start_em = s_jahr * 12 + s_monat %}
+          {% set ende_em = e_jahr * 12 + e_monat %}
+
+          {% if start_em == ende_em %}
+            {# Start und Ende im selben Monat #}
+            {% set j = s_jahr %}
+            {% set m = s_monat %}
+            {% set tim = ((j ~ '-' ~ '%02d' | format(m) ~ '-01') | as_datetime | as_local) %}
+            {% set naechster = ((j + (1 if m == 12 else 0)) ~ '-' ~ '%02d' | format((m % 12) + 1) ~ '-01') | as_datetime | as_local %}
+            {% set tage_im_monat = (naechster - tim).days %}
+            {% set anteil = (e_tag - s_tag + 1) / tage_im_monat %}
+            {% set ns.sum = hdd[m] * anteil %}
+          {% else %}
+            {# --- Startmonat (anteilig ab Starttag) --- #}
+            {% set m = s_monat %}
+            {% set j = s_jahr %}
+            {% set tim = ((j ~ '-' ~ '%02d' | format(m) ~ '-01') | as_datetime | as_local) %}
+            {% set naechster = ((j + (1 if m == 12 else 0)) ~ '-' ~ '%02d' | format((m % 12) + 1) ~ '-01') | as_datetime | as_local %}
+            {% set tage_im_monat = (naechster - tim).days %}
+            {% set rest_tage = tage_im_monat - s_tag + 1 %}
+            {% set ns.sum = ns.sum + hdd[m] * (rest_tage / tage_im_monat) %}
+
+            {# --- Volle Monate dazwischen --- #}
+            {% for offset in range(1, 24) %}
+              {% set em = start_em + offset %}
+              {% if em < ende_em %}
+                {% set loop_m = ((em - 1) % 12) + 1 %}
+                {% set ns.sum = ns.sum + hdd[loop_m] %}
+              {% endif %}
+            {% endfor %}
+
+            {# --- Endmonat (anteilig bis heute) --- #}
+            {% set m = e_monat %}
+            {% set j = e_jahr %}
+            {% set tim = ((j ~ '-' ~ '%02d' | format(m) ~ '-01') | as_datetime | as_local) %}
+            {% set naechster = ((j + (1 if m == 12 else 0)) ~ '-' ~ '%02d' | format((m % 12) + 1) ~ '-01') | as_datetime | as_local %}
+            {% set tage_im_monat = (naechster - tim).days %}
+            {% set ns.sum = ns.sum + hdd[m] * (e_tag / tage_im_monat) %}
+          {% endif %}
+
+          {{ ns.sum | round(2) }}
         {% endif %}
 
     ###########################################################################
     # 5) Effizienz: kg pro HDD
+    #    Zieht den Startwert (Zählerstand bei Beginn) vom aktuellen
+    #    Pelletverbrauch ab, um nur den Verbrauch im Messzeitraum zu nutzen.
     ###########################################################################
     - name: "pellets_pro_hdd_norm"
       unique_id: pellets_pro_hdd_norm
       unit_of_measurement: "kg/HDD"
       state: >
         {% set pellets = states('sensor.hg_pk32_pelletverbrauch') | float(0) %}
+        {% set startwert = states('input_number.hg_pk32_pelletverbrauch_startwert') | float(0) %}
+        {% set verbrauch = pellets - startwert %}
         {% set hddzeit = states('sensor.hdd_norm_zeitraum') | float(0) %}
-        {% if hddzeit > 0 %}
-          {{ (pellets / hddzeit) | round(3) }}
+        {% if hddzeit > 0 and verbrauch > 0 %}
+          {{ (verbrauch / hddzeit) | round(3) }}
         {% else %}
           0
         {% endif %}
@@ -191,21 +254,35 @@ Erstelle oder erweitere die Datei `templates.yaml` in deinem Home Assistant Konf
 template: !include templates.yaml
 ```
 
-### Schritt 2: Input DateTime Helper erstellen
+### Schritt 2: Helper erstellen
 
-Der `input_datetime` Helper ist **zwingend erforderlich** für die Berechnung der Verbrauchsprognosen. Er speichert den Startzeitpunkt, ab dem der Pelletverbrauch gemessen wird.
+Für die Verbrauchsprognosen werden **zwei Helper** benötigt:
+
+| Helper | Typ | Zweck |
+| --- | --- | --- |
+| `hg_pk32_pelletverbrauch_startzeit` | `input_datetime` | Beginn des Messzeitraums |
+| `hg_pk32_pelletverbrauch_startwert` | `input_number` | Zählerstand (kg) bei Beginn |
 
 **Option A: Über die UI erstellen (empfohlen)**
 
 1. Gehe zu **Einstellungen** → **Geräte & Dienste** → **Helfer**
-2. Klicke auf **+ Helfer erstellen**
-3. Wähle **Datum und/oder Uhrzeit**
-4. Konfiguriere:
+2. **Startzeit erstellen:**
+   - Klicke auf **+ Helfer erstellen** → **Datum und/oder Uhrzeit**
    - **Name**: `hg_pk32_pelletverbrauch_startzeit`
    - **Hat ein Datum**: ✓ aktiviert
    - **Hat eine Zeit**: ✓ aktiviert
-5. Klicke auf **Erstellen**
-6. Nach dem Erstellen: Öffne den Helper und setze das Datum/Uhrzeit auf den Zeitpunkt, ab dem dein Pelletverbrauchszähler zählt (z.B. wann du das letzte Mal die Pellets aufgefüllt hast oder die Heizperiode begonnen hat)
+   - Klicke auf **Erstellen**
+3. **Startwert erstellen:**
+   - Klicke auf **+ Helfer erstellen** → **Zahl**
+   - **Name**: `hg_pk32_pelletverbrauch_startwert`
+   - **Minimum**: 0
+   - **Maximum**: 999999
+   - **Schrittweite**: 1
+   - **Einheit**: kg
+   - Klicke auf **Erstellen**
+4. Setze beide Helper auf die Werte zum Zeitpunkt, ab dem du den Verbrauch messen willst:
+   - **Startzeit**: Datum/Uhrzeit des Messbeginns
+   - **Startwert**: Der Zählerstand von `sensor.hg_pk32_pelletverbrauch` zu diesem Zeitpunkt
 
 **Option B: Per YAML erstellen**
 
@@ -219,21 +296,45 @@ Erstelle oder erweitere die Datei `input_datetime.yaml`:
 # Startzeit für Pelletverbrauch-Berechnung
 # Setze dieses Datum auf den Zeitpunkt, ab dem der Verbrauch gezählt werden soll
 hg_pk32_pelletverbrauch_startzeit:
-  name: "Pelletverbrauch Startzeit"
+  name: "Startzeit Pelletverbrauchszähler"
   has_date: true
   has_time: true
 ```
 
-Stelle sicher, dass `input_datetime.yaml` in deiner `configuration.yaml` eingebunden ist:
+Erstelle oder erweitere die Datei `input_number.yaml`:
+
+```yaml
+#
+# Input Number Helpers
+#
+
+# Zählerstand bei Beginn des Messzeitraums
+# Setze diesen Wert auf den Pelletverbrauch-Zählerstand zum Startzeitpunkt
+hg_pk32_pelletverbrauch_startwert:
+  name: "Startwert Pelletverbrauchszähler"
+  min: 0
+  max: 999999
+  step: 1
+  unit_of_measurement: "kg"
+  mode: box
+```
+
+Stelle sicher, dass beide Dateien in deiner `configuration.yaml` eingebunden sind:
 
 ```yaml
 # Input DateTime
 input_datetime: !include input_datetime.yaml
+
+# Input Number
+input_number: !include input_number.yaml
 ```
 
-Nach dem Neustart von Home Assistant: Gehe zu **Entwicklerwerkzeuge** → **Zustände** und setze `input_datetime.hg_pk32_pelletverbrauch_startzeit` auf das gewünschte Startdatum.
+Nach dem Neustart von Home Assistant: Gehe zu **Entwicklerwerkzeuge** → **Zustände** und setze beide Helper:
 
-> **Wichtig**: Ohne diesen Helper zeigen alle Prognose-Sensoren "unknown" oder "0" an! Der Startzeitpunkt bestimmt den Berechnungszeitraum für die Effizienz (kg/HDD), welche die Grundlage für alle Prognosen ist.
+- `input_datetime.hg_pk32_pelletverbrauch_startzeit` → Startdatum (z.B. `2025-11-22 17:51:43`)
+- `input_number.hg_pk32_pelletverbrauch_startwert` → Zählerstand bei Start (z.B. `121`)
+
+> **Wichtig**: Ohne diese Helper zeigen alle Prognose-Sensoren "unknown" oder "0" an! Die Effizienz wird aus dem **Verbrauch seit Start** (aktueller Zähler minus Startwert) und den **HDD im Messzeitraum** berechnet.
 
 ### Schritt 3: Utility Meters konfigurieren
 
@@ -356,6 +457,10 @@ cards:
           - entity: sensor.hg_pk32_kesseltemperatur
             name:
               type: entity
+          - entity: sensor.hg_pk32_kessel_solltemperatur
+            name:
+              type: entity
+            icon: mdi:thermometer-lines
           - entity: sensor.hg_pk32_brennraumtemperatur
             icon: mdi:fire
             name:
@@ -386,14 +491,14 @@ cards:
           - entity: sensor.hg_pk32_puffer_unten
             name: Puffer Unten
             icon: mdi:thermometer
+          - entity: sensor.hg_pk32_puffer_sollwert_unten
+            name: Maximum Sollwert
+            icon: mdi:thermometer-plus
+          - entity: sensor.hg_pk32_puffer_sollwert_oben
+            name: Minimum Sollwert
+            icon: mdi:thermometer-minus
           - type: section
             label: Heizkreise
-          - entity: sensor.hg_pk32_heizkreis_anforderung
-            name: Gesamtanforderung HK
-            icon: mdi:radiator
-          - entity: sensor.hg_pk32_vorlauftemperatur_gesamt
-            name: Vorlauftemperatur Gesamt
-            icon: mdi:thermometer-high
           - entity: sensor.hg_pk32_vorlauf_hk_1
             name: Vorlauf HK 1
             icon: mdi:thermometer
@@ -405,7 +510,7 @@ cards:
           - entity: sensor.hg_pk32_warmwasser_1
             name: Warmwasser 1
             icon: mdi:water-boiler
-          - entity: sensor.hg_pk32_warmwasser_soll_1
+          - entity: sensor.hg_pk32_warmwasser_b
             name: Warmwasser Soll 1
             icon: mdi:target
           - type: section
@@ -414,6 +519,30 @@ cards:
             name: Außentemperatur
         state_color: true
         show_header_toggle: false
+    columns: 1
+  - square: false
+    type: grid
+    cards:
+      - type: entities
+        entities: []
+        title: Heizraum - Temperaturen
+        icon: mdi:heat-pump-outline
+      - square: false
+        type: grid
+        cards:
+          - graph: line
+            type: sensor
+            entity: sensor.thd_005_temperature
+            detail: 1
+            name:
+              type: entity
+          - graph: line
+            type: sensor
+            entity: sensor.thd_005_humidity
+            detail: 1
+            name:
+              type: entity
+        columns: 2
     columns: 1
   - square: false
     type: grid
@@ -506,15 +635,15 @@ cards:
           - entity: sensor.hg_pk32_vorlauf_soll_hk_1
             name: Vorlauf HK1 (Soll)
           - entity: sensor.hg_pk32_warmwasser_1
-            name: Vorlauf Warmwasser (Ist)
-          - entity: sensor.hg_pk32_warmwasser_soll_1
-            name: Vorlauf Warmwasser (Soll)
+            name: Warmwasser (Ist)
+          - entity: sensor.hg_pk32_warmwasser_b
+            name: Warmwasser (Soll)
         stat_types:
           - mean
         hide_legend: false
         logarithmic_scale: false
         days_to_show: 1
-        title: Heizkreistemperaturen & Warmwasser
+        title: Heizkreis & Warmwasser
       - chart_type: line
         period: 5minute
         type: statistics-graph
@@ -557,12 +686,12 @@ cards:
             name: Jahresprognose (HDD/VDI 4710)
             icon: mdi:chart-areaspline
           - entity: sensor.pelletverbrauch_restjahr_hdd_norm
-            name: Restjahr-Prognose (HDD-bereinigt)
+            name: Restjahr-Prognose (HDD/VDI 4710)
             icon: mdi:calendar-clock
           - type: section
             label: Effizienzdaten
           - entity: sensor.pellets_pro_hdd_norm
-            name: Effizienz kg/HDD
+            name: Effizienz
             icon: mdi:speedometer
           - type: section
             label: Heizgradtage (Norm via VDI 4710 / DWD 1991–2020)
@@ -585,17 +714,36 @@ cards:
               - entity: sensor.hg_pk32_pelletverbrauch_tag
                 name: Tagesverbrauch
                 type: column
-                color_threshold:
-                  - value: 2
-                    color: "#76d275"
-                  - value: 5
-                    color: "#42a5f5"
-                  - value: 10
-                    color: "#ffb74d"
-                  - value: 20
-                    color: "#ef5350"
-                  - value: 40
-                    color: "#b71c1c"
+                yaxis_id: main
+                group_by:
+                  duration: 1d
+                  func: max
+                transform: "return x === 0 ? null : x;"
+                color: "#1e88e5"
+            yaxis:
+              - id: main
+                decimals: 0
+                min: 0
+            apex_config:
+              chart:
+                height: 260
+              plotOptions:
+                bar:
+                  columnWidth: 75%
+              xaxis:
+                axisBorder:
+                  show: false
+                axisTicks:
+                  show: false
+              yaxis:
+                - axisBorder:
+                    show: false
+                  axisTicks:
+                    show: false
+              grid:
+                yaxis:
+                  lines:
+                    show: false
   - type: entities
     title: Pelletheizung (Alle Sensordaten)
     icon: mdi:fire-circle
@@ -774,7 +922,7 @@ cards:
       - entity: sensor.hg_pk32_warmwasser_1
         name: Warmwasser 1
         icon: mdi:water-boiler
-      - entity: sensor.hg_pk32_warmwasser_soll_1
+      - entity: sensor.hg_pk32_warmwasser_b
         name: Warmwasser Soll 1
         icon: mdi:target
       - entity: sensor.hg_pk32_boilerpumpe_1
