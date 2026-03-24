@@ -20,6 +20,15 @@ und dieses Projekt folgt [Semantic Versioning](https://semver.org/lang/de/).
   - Effizienz-Sensor berechnet jetzt `(aktueller Zähler - Startwert) / HDD` statt `Zähler / HDD`
   - Verhindert Verfälschung bei Zählerständen die nicht bei 0 beginnen
 
+- **Config Flow: Generische Exception durch spezifische Exception ersetzt**
+  - `raise Exception(...)` → `raise HargassnerConnectionError(...)` in `config_flow.py`
+  - Fehler wird jetzt korrekt als "cannot_connect" angezeigt statt "unknown"
+
+- **Dokumentation: Sensor-Anzahlen korrigiert**
+  - STANDARD Set: 27 → 26 Sensoren (4 Always + 22 Parameter)
+  - "Outside & Pellets": 4 → 3 Einträge
+  - FULL Set: "plus 211" → "plus 202 zusätzliche Parameter"
+
 ### ✨ Improved
 
 - **Dashboard YAML aktualisiert** auf den aktuellen Produktiv-Stand

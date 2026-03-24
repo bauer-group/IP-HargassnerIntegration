@@ -30,7 +30,7 @@
 - 🔧 **Firmware support** for V14_1HAR_q1 (extensible architecture)
 - ⚡ **Energy Dashboard** integration with automatic kWh calculation
 - 🌍 **Bilingual** sensor names and states (EN/DE)
-- 📊 **Flexible sensor sets**: Standard (17 sensors) or Full (228 sensors)
+- 📊 **Flexible sensor sets**: Standard (26 sensors) or Full (228 sensors)
 - 🔌 **Local polling** - no cloud dependency
 
 ## 📸 Screenshots
@@ -117,14 +117,14 @@ Then restart Home Assistant.
 
 | Set | Sensors | Use Case |
 |-----|---------|----------|
-| **STANDARD** | 27 sensors | Basic monitoring, dashboards |
+| **STANDARD** | 26 sensors | Basic monitoring, dashboards |
 | **FULL** | 228 sensors | Advanced diagnostics, all parameters |
 
 > 💡 **Tip:** Start with STANDARD, switch to FULL if you need detailed diagnostics.
 
 ## 📊 Available Sensors
 
-### STANDARD Set (27 Sensors)
+### STANDARD Set (26 Sensors)
 
 **Always Available (4):**
 
@@ -162,7 +162,7 @@ Then restart Home Assistant.
 - 💧 **Hot Water Temperature** (TB1)
 - 🎯 **Hot Water Setpoint** (TBs_1)
 
-**Outside & Pellets (4):**
+**Outside & Pellets (3):**
 
 - 🌍 **Outside Temperature** (Taus)
 - 🪵 **Pellet Stock** (Lagerstand)
@@ -170,7 +170,7 @@ Then restart Home Assistant.
 
 ### FULL Set (228 Sensors)
 
-All STANDARD sensors **plus** 211 additional parameters:
+All STANDARD sensors **plus** 202 additional parameters:
 
 **Analog Sensors (112):**
 

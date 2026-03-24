@@ -85,7 +85,7 @@ Starte Home Assistant neu.
    - **Gerätename:** z.B. `Hargassner`
    - **Sprache:** `DE` (Deutsch)
    - **Sensor-Set:**
-     - `STANDARD` - 27 wichtigste Sensoren
+     - `STANDARD` - 26 wichtigste Sensoren
      - `FULL` - Alle 228 Sensoren aus dem Firmware-Template
    - **Heizwert Pellets:** `4.8` kWh/kg (Standard, kann angepasst werden)
    - **Wirkungsgrad:** `90` % (Standard, kann angepasst werden)
@@ -110,7 +110,7 @@ Diese Nachricht hat **138 Werte** und wird korrekt geparst zu:
 
 ## Verfügbare Sensoren
 
-### Sensor-Set: STANDARD (27 Sensoren)
+### Sensor-Set: STANDARD (26 Sensoren)
 
 **Immer verfügbar (4):**
 

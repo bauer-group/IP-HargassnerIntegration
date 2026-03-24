@@ -59,7 +59,7 @@ async def validate_connection(hass: HomeAssistant, host: str, firmware: str) -> 
         await asyncio.sleep(2)  # Wait for initial data
 
         if not client.connected:
-            raise Exception("Failed to establish connection")
+            raise HargassnerConnectionError("Failed to establish connection")
 
         return True
 
