@@ -68,6 +68,55 @@ def test_real_capture_parses_completely():
     assert all(p.name in parsed for p in digital)
 
 
+def test_real_capture_obeys_the_dop_formatting_rules():
+    """The template's channel order agrees with how the firmware prints values.
+
+    Two rules hold without exception across the factory recording: a dop='0'
+    channel never emits a decimal point, and a dop='2' channel always emits
+    exactly two. A misplaced channel shows up here as a violation, which is how
+    three misplaced placeholders in this template were found.
+
+    Channels with no dop attribute are deliberately not checked - the boiler
+    trims a trailing '.0' on those, so they carry no positional signal.
+    """
+    geometry = build_geometry(REAL_CAPTURE_FIRMWARE)
+    values = REAL_CAPTURE.split()[1:]
+
+    violations = []
+    for index in range(geometry.analog_count):
+        name, dop = geometry.analog[index]
+        token = values[index]
+        decimals = len(token.split(".")[1]) if "." in token else 0
+        if dop == "0" and decimals != 0:
+            violations.append(f"{name} (id {index}) dop='0' but {token!r}")
+        elif dop == "2" and decimals != 2:
+            violations.append(f"{name} (id {index}) dop='2' but {token!r}")
+
+    assert violations == []
+
+
+def test_real_capture_matches_manufacturer_signatures():
+    """Uninstalled circuits read the same way the manufacturer's own boiler does."""
+    geometry = build_geometry(REAL_CAPTURE_FIRMWARE)
+    values = REAL_CAPTURE.split()[1:]
+    at = {name: values[i] for i, (name, _) in geometry.analog.items()}
+
+    block = ("TVL_{0}", "TVLs_{0}", "TRA_{0}", "TRs_{0}", "HKZustand_{0}", "FR{0} Zustand", "HKP{0} Status")
+    circuit_a = [at[part.format("A")] for part in block]
+    circuit_b = [at[part.format("B")] for part in block]
+
+    # Neither circuit is installed on this boiler, so both carry the sentinel
+    assert circuit_a == circuit_b == ["-20.0", "0", "20.0", "20.0", "0", "1", "0"]
+
+    # Same for the two DHW boilers that are absent
+    assert [at["TBA"], at["TBs_A"]] == ["-20.0", "0"]
+    assert [at["TBB"], at["TBs_B"]] == ["-20.0", "0"]
+
+    # Wasserdruck is the last analog channel and the only two-decimal value there
+    assert geometry.analog[geometry.analog_count - 1][0] == "Wasserdruck"
+    assert at["Wasserdruck"] == "0.00"
+
+
 def test_digital_words_are_read_as_hexadecimal():
     """Digital words are hex, and reading them as decimal changes the result.
 

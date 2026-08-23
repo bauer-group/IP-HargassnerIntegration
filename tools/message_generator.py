@@ -164,8 +164,13 @@ class MessageGenerator:
         """Render a value the way the boiler renders it.
 
         The DAQPRJ 'dop' attribute carries the number of decimal places the channel
-        is displayed with, and the telnet stream follows it: dop='0' emits "37",
-        dop='2' emits "0.00". Channels with no dop attribute emit one decimal.
+        is displayed with, and the telnet stream follows it without exception:
+        dop='0' never emits a decimal point, dop='2' always emits exactly two.
+
+        Channels with no dop attribute are looser - the boiler emits one decimal but
+        sometimes trims a trailing '.0', so the same channel can print '30.1' and
+        '30' on consecutive messages. One decimal is always well-formed, so it is
+        emitted unconditionally rather than trying to reproduce the trimming.
 
         Args:
             value: Numeric value

@@ -16,7 +16,7 @@ und dieses Projekt folgt [Semantic Versioning](https://semver.org/lang/de/).
 - **Firmware-Unterstützung für Nano.2(.3) 15 + Zusatzpuffer/AUP (V14_1HAR_q_nano2_zuspuf_aup3)** ([Issue #17](https://github.com/bauer-group/IP-HargassnerIntegration/issues/17))
   - Community-Beitrag von [@pschimik](https://github.com/pschimik) via DAQ-Template
   - 147 Analog-Parameter + 8 Digital-Words = 155 Werte (gegen echten Telnet-Mitschnitt verifiziert)
-  - Zusätzlich gegenüber `V14_1HAR_q1`: AUP-Positionierung (132–135), Zusatzpuffer 1 (136–144), Wasserdruck (145)
+  - Zusätzlich gegenüber `V14_1HAR_q1`: AUP-Positionierung (133–136), Zusatzpuffer 1 (137–144), Wasserdruck (146)
   - 12 neue Parameter-Beschreibungen (DE/EN) für Zusatzpuffer und Heizkreispumpen 3/4
 
 ### 🧪 Tests
@@ -29,6 +29,14 @@ und dieses Projekt folgt [Semantic Versioning](https://semver.org/lang/de/).
   - Protokolllängen aller Templates sind als Festwerte gepinnt: eine Template-Änderung, die eine Länge verschiebt, wird damit sichtbar statt still
 
 ### 🐛 Fixed
+
+- **Nano.2(.3) 15 Template: drei Platzhalter-Kanäle standen an der falschen Position** ([Issue #17](https://github.com/bauer-group/IP-HargassnerIntegration/issues/17))
+  - `dummy1` 67 → 60, `dummy3` 131 → 112, `dummy4`/`Wasserdruck` getauscht — reine Umsortierung, weiterhin 147 Analog-Kanäle und 155 Werte
+  - Dadurch waren Heizkreis A (`TVL_A`…`HKPA Status`) sowie `TBB`/`TBs_B`/`HKR Anf`/`Anf. HKR0…15` und `Wasserdruck` um eine Position verschoben
+  - Nachgewiesen über zwei Regeln, die die Firmware ausnahmslos einhält (4480 Werte aus der Werksaufzeichnung): `dop='0'` gibt nie eine Nachkommastelle aus, `dop='2'` immer genau zwei. Die eingereichte Reihenfolge verletzt das sechsmal, die korrigierte keinmal — und eine kleinere Korrektur existiert nicht
+  - Heizkreis A und Boiler B lesen jetzt exakt die Werkssignatur für nicht installierte Komponenten
+  - Betrifft nur `FULL`-Sensor-Set; kein Sensor aus dem `STANDARD`-Set liegt in einem verschobenen Bereich
+  - Offener Punkt: die genaue Position von `dummy1` (57–60) ist aus dem vorliegenden Mitschnitt nicht eindeutig bestimmbar, im Code kommentiert
 
 - **Message Generator erzeugte protokollungültige Nachrichten**
   - Er gab einen Wert je *eindeutigem Parameternamen* aus und schätzte die Anzahl der Digital-Words — die Länge stimmte bei **keinem** der 7 Templates (Abweichungen -1 bis +13 Werte)
