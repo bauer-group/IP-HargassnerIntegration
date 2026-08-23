@@ -5,7 +5,15 @@ Alle wichtigen Änderungen an diesem Projekt werden in dieser Datei dokumentiert
 Das Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/),
 und dieses Projekt folgt [Semantic Versioning](https://semver.org/lang/de/).
 
-## [0.3.2] - UNRELEASED
+## [0.4.0] - 2026-08-23
+
+> **⚠️ Upgrade-Hinweis:** Diese Version korrigiert, wie die digitalen Kesselwerte dekodiert werden.
+> **Binärsensoren können nach dem Update ihren Zustand wechseln**, und es erscheinen Sensoren, die
+> vorher ganz gefehlt haben. Das ist beabsichtigt — die bisherigen Werte waren falsch.
+> Details im Abschnitt „Digital-Werte wurden dezimal statt hexadezimal gelesen".
+>
+> Wer das neue Template `V14_1HAR_q_nano2_zuspuf_aup3` einsetzt, sollte zusätzlich den Abschnitt
+> zur Template-Korrektur lesen. Alle übrigen Templates sind unverändert.
 
 ### ✨ Added
 
@@ -13,54 +21,37 @@ und dieses Projekt folgt [Semantic Versioning](https://semver.org/lang/de/).
   - Die Firmware-Version war bisher nur bei der Ersteinrichtung wählbar — ein Wechsel erforderte Löschen und Neuanlegen der Integration inklusive Verlust der Entity-Historie
   - Damit lassen sich Zusatzwerte wie die des Solarthermie-Differenzreglers (`V14_1HAR_q1_solar`) ohne Neuanlage aktivieren
 
-- **Firmware-Unterstützung für Nano.2(.3) 15 + Zusatzpuffer/AUP (V14_1HAR_q_nano2_zuspuf_aup3)** ([Issue #17](https://github.com/bauer-group/IP-HargassnerIntegration/issues/17))
+- **Firmware-Unterstützung für Nano.2(.3) 15 + Zusatzpuffer/AUP (`V14_1HAR_q_nano2_zuspuf_aup3`)** ([Issue #17](https://github.com/bauer-group/IP-HargassnerIntegration/issues/17))
   - Community-Beitrag von [@pschimik](https://github.com/pschimik) via DAQ-Template
-  - 147 Analog-Parameter + 8 Digital-Words = 155 Werte (gegen echten Telnet-Mitschnitt verifiziert)
+  - 147 Analog-Parameter + 8 Digital-Words = 155 Werte, gegen einen echten Telnet-Mitschnitt verifiziert
   - Zusätzlich gegenüber `V14_1HAR_q1`: AUP-Positionierung (133–136), Zusatzpuffer 1 (137–144), Wasserdruck (146)
   - 12 neue Parameter-Beschreibungen (DE/EN) für Zusatzpuffer und Heizkreispumpen 3/4
 
-### 🧪 Tests
-
-- **Echte Testsuite statt Platzhalter** (116 Tests, Laufzeit ~1 s)
-  - `tests/test_message_parser.py` enthielt bisher einen leeren `test_example()` mit einer TODO-Liste
-  - Kernstück ist ein Round-Trip über **alle 7 Firmware-Templates**: generierte Nachricht → Parser → Vergleich Wert für Wert, inklusive aller Digital-Bits
-  - Die Sollwerte stammen bewusst aus dem DAQPRJ-XML selbst, nicht aus Parser oder Generator — sonst würden sich Fehler auf beiden Seiten gegenseitig aufheben
-  - Regressionstest für die Hex-Dekodierung an einem echten Telnet-Mitschnitt (Nano.2(.3) 15, 155 Werte, aus Issue #17)
-  - Protokolllängen aller Templates sind als Festwerte gepinnt: eine Template-Änderung, die eine Länge verschiebt, wird damit sichtbar statt still
-
 ### 🐛 Fixed
-
-- **Nano.2(.3) 15 Template: drei Platzhalter-Kanäle standen an der falschen Position** ([Issue #17](https://github.com/bauer-group/IP-HargassnerIntegration/issues/17))
-  - `dummy1` 67 → 60, `dummy3` 131 → 112, `dummy4`/`Wasserdruck` getauscht — reine Umsortierung, weiterhin 147 Analog-Kanäle und 155 Werte
-  - Dadurch waren Heizkreis A (`TVL_A`…`HKPA Status`) sowie `TBB`/`TBs_B`/`HKR Anf`/`Anf. HKR0…15` und `Wasserdruck` um eine Position verschoben
-  - Nachgewiesen über zwei Regeln, die die Firmware ausnahmslos einhält (4480 Werte aus der Werksaufzeichnung): `dop='0'` gibt nie eine Nachkommastelle aus, `dop='2'` immer genau zwei. Die eingereichte Reihenfolge verletzt das sechsmal, die korrigierte keinmal — und eine kleinere Korrektur existiert nicht
-  - Heizkreis A und Boiler B lesen jetzt exakt die Werkssignatur für nicht installierte Komponenten
-  - Betrifft nur `FULL`-Sensor-Set; kein Sensor aus dem `STANDARD`-Set liegt in einem verschobenen Bereich
-  - Offener Punkt: die genaue Position von `dummy1` (57–60) ist aus dem vorliegenden Mitschnitt nicht eindeutig bestimmbar, im Code kommentiert
-
-- **Message Generator erzeugte protokollungültige Nachrichten**
-  - Er gab einen Wert je *eindeutigem Parameternamen* aus und schätzte die Anzahl der Digital-Words — die Länge stimmte bei **keinem** der 7 Templates (Abweichungen -1 bis +13 Werte)
-  - Neu wird die Nachricht positionsgenau aus dem DAQPRJ aufgebaut: eine Position je `ANALOG`-`id`, danach je `DIGITAL`-`id` ein Word als Grossbuchstaben-Hex
-  - Damit bleiben auch mehrfach vergebene Kanalnamen erhalten (`V14_0m5` nennt 7 Kanäle `DUMMY`) und nicht deklarierte Word-Ids behalten ihren Platz
-  - Werte werden gemäss `dop`-Attribut formatiert (`dop='0'` → `37`, `dop='2'` → `0.00`, ohne `dop` → eine Nachkommastelle)
-  - `--state` existiert jetzt tatsächlich (war dokumentiert, aber nicht implementiert — die dokumentierten Beispiele brachen ab), neu dazu `--seed` für reproduzierbare Ausgabe
 
 - **Digital-Werte wurden dezimal statt hexadezimal gelesen** ([Issue #17](https://github.com/bauer-group/IP-HargassnerIntegration/issues/17))
   - Der Kessel überträgt die Digital-Words als **Grossbuchstaben-Hex** (`E`, `21`, `2007`), `message_parser.py` hat sie mit `int()` als Dezimalzahl gelesen
   - Folge 1: Ein Word mit Hex-Buchstaben (z.B. `E`) warf `ValueError` — **sämtliche Kanäle dieses Words fielen ersatzlos aus** (im Referenz-Mitschnitt 15 Binärsensoren)
   - Folge 2: Rein numerische Words wurden falsch dekodiert (`21` → 33 statt 21) — einzelne Binärsensoren zeigten dauerhaft den falschen Zustand oder wechselten scheinbar grundlos
   - Nachgewiesen an zwei unabhängigen Anlagen: hexadezimal gelesen setzen die Words **ausschliesslich Bits, die das Template deklariert**, dezimal gelesen setzen sie Bits, die kein Kanal beansprucht
-  - ⚠️ **Verhaltensänderung**: Binärsensoren können nach dem Update ihren Zustand wechseln. Das ist beabsichtigt — die bisherigen Werte waren falsch.
+  - ⚠️ **Verhaltensänderung** — siehe Upgrade-Hinweis oben
 
-- **Entwickler-Tools waren nicht lauffähig**
-  - `tools/parameter_validator.py` und `tools/message_generator.py` importierten aus einem nicht mehr existierenden `src/`-Layout und brachen sofort ab
-  - Beide Tools übergaben zudem das Template-XML statt des Firmware-Keys an `HargassnerMessageParser` — der Parser fiel damit still auf `V14_1HAR_q1` zurück und validierte faktisch nur ein einziges Template
-  - Die Duplikat-Prüfung des Validators war wirkungslos (sie las das bereits namens-deduplizierte Parser-Dict) und liest jetzt direkt das XML
+- **Nano.2(.3) 15 Template: drei Platzhalter-Kanäle standen an der falschen Position** ([Issue #17](https://github.com/bauer-group/IP-HargassnerIntegration/issues/17))
+  - `dummy1` 67 → 60, `dummy3` 131 → 112, `dummy4`/`Wasserdruck` getauscht — reine Umsortierung, weiterhin 147 Analog-Kanäle und 155 Werte
+  - Dadurch waren Heizkreis A (`TVL_A` … `HKPA Status`) sowie `TBB`, `TBs_B`, `HKR Anf` und `Anf. HKR0…15` um eine Position verschoben
+  - Nachgewiesen über zwei Regeln, die die Firmware ausnahmslos einhält (4480 Werte aus der Werksaufzeichnung): `dop='0'` gibt nie eine Nachkommastelle aus, `dop='2'` immer genau zwei. Die eingereichte Reihenfolge verletzt das sechsmal, die korrigierte keinmal — und eine kleinere Korrektur existiert nicht
+  - Heizkreis A und Boiler B lesen jetzt exakt die Werkssignatur für nicht installierte Komponenten
+  - Betrifft nur das `FULL`-Sensor-Set; kein Sensor aus dem `STANDARD`-Set liegt in einem verschobenen Bereich
+  - Offener Punkt: die genaue Position von `dummy1` (57–60) ist aus dem vorliegenden Mitschnitt nicht eindeutig bestimmbar, im Code kommentiert
 
 - **Nachrichtenlänge-Abweichung war praktisch unsichtbar** ([Issue #17](https://github.com/bauer-group/IP-HargassnerIntegration/issues/17), [Issue #20](https://github.com/bauer-group/IP-HargassnerIntegration/issues/20))
   - Passte das Firmware-Template nicht zum Kessel, wurde die Nachricht trotzdem geparst und die Abweichung nur auf `DEBUG` geloggt — Werte landeten unbemerkt in den falschen Entitäten
   - Jetzt: `WARNING` beim ersten Auftreten und bei jeder Änderung der Länge (kein Log-Spam bei einer Nachricht alle paar Sekunden), `INFO` sobald die Länge wieder passt
-  - Der Verbindungs-Sensor zeigt zusätzlich `firmware_template`, `expected_length` und `last_message_length` als Attribute — Template-Passung ist damit ohne Debug-Logging prüfbar
+  - Der Verbindungs-Sensor zeigt zusätzlich `firmware_template`, `expected_length` und `last_message_length` als Attribute — die Template-Passung ist damit ohne Debug-Logging prüfbar
+
+- **Config Flow: Generische Exception durch spezifische Exception ersetzt**
+  - `raise Exception(...)` → `raise HargassnerConnectionError(...)` in `config_flow.py`
+  - Fehler wird jetzt korrekt als „cannot_connect" angezeigt statt als „unknown"
 
 - **Pelletverbrauch-Hochrechnung: HDD-Berechnung monatsgenau statt Tagesdurchschnitt**
   - Sensor `hdd_norm_zeitraum` verwendete einen flachen Durchschnitt (`2798 / 365 ≈ 7,67 HDD/Tag`), unabhängig von der saisonalen Verteilung
@@ -73,22 +64,34 @@ und dieses Projekt folgt [Semantic Versioning](https://semver.org/lang/de/).
   - Effizienz-Sensor berechnet jetzt `(aktueller Zähler - Startwert) / HDD` statt `Zähler / HDD`
   - Verhindert Verfälschung bei Zählerständen die nicht bei 0 beginnen
 
-- **Config Flow: Generische Exception durch spezifische Exception ersetzt**
-  - `raise Exception(...)` → `raise HargassnerConnectionError(...)` in `config_flow.py`
-  - Fehler wird jetzt korrekt als "cannot_connect" angezeigt statt "unknown"
-
 - **Dokumentation: Sensor-Anzahlen korrigiert**
   - STANDARD Set: 27 → 26 Sensoren (4 Always + 22 Parameter)
-  - "Outside & Pellets": 4 → 3 Einträge
-  - FULL Set: "plus 211" → "plus 202 zusätzliche Parameter"
+  - „Outside & Pellets": 4 → 3 Einträge
+  - FULL Set: „plus 211" → „plus 202 zusätzliche Parameter"
 
-### 📄 Docs
+### 🔧 Developer Tooling
 
-- **Architektur-Konzept: Cloud Control & ClimateEntity** (`docs/CLOUD_CLIMATE_ARCHITECTURE.md`)
-  - Dokumentiert die reverse-engineered Hargassner Connect Cloud REST API (OAuth, Endpunkte, Widget-Struktur)
-  - ClimateEntity-Mapping (HVAC-Modi, Temperatursteuerung, Heizkurve)
-  - Companion-Architektur: Separate Cloud-Integration neben bestehender lokaler Telnet-Integration
-  - Roadmap für zukünftige Zusammenarbeit mit [@knirzinger](https://github.com/knirzinger)
+- **Entwickler-Tools waren nicht lauffähig**
+  - `tools/parameter_validator.py` und `tools/message_generator.py` importierten aus einem nicht mehr existierenden `src/`-Layout und brachen sofort ab
+  - Beide Tools übergaben zudem das Template-XML statt des Firmware-Keys an `HargassnerMessageParser` — der Parser fiel damit still auf `V14_1HAR_q1` zurück und validierte faktisch nur ein einziges Template
+  - Die Duplikat-Prüfung des Validators war wirkungslos (sie las das bereits namens-deduplizierte Parser-Dict) und liest jetzt direkt das XML
+
+- **Message Generator erzeugte protokollungültige Nachrichten**
+  - Er gab einen Wert je *eindeutigem Parameternamen* aus und schätzte die Anzahl der Digital-Words — die Länge stimmte bei **keinem** der 7 Templates (Abweichungen -1 bis +13 Werte)
+  - Neu wird die Nachricht positionsgenau aus dem DAQPRJ aufgebaut: eine Position je `ANALOG`-`id`, danach je `DIGITAL`-`id` ein Word als Grossbuchstaben-Hex
+  - Damit bleiben auch mehrfach vergebene Kanalnamen erhalten (`V14_0m5` nennt 7 Kanäle `DUMMY`) und nicht deklarierte Word-Ids behalten ihren Platz
+  - Werte werden gemäss `dop`-Attribut formatiert (`dop='0'` → `37`, `dop='2'` → `0.00`, ohne `dop` → eine Nachkommastelle)
+  - `--state` existiert jetzt tatsächlich (war dokumentiert, aber nicht implementiert — die dokumentierten Beispiele brachen ab), neu dazu `--seed` für reproduzierbare Ausgabe
+
+### 🧪 Tests
+
+- **Echte Testsuite statt Platzhalter** (118 Tests, Laufzeit ~1 s)
+  - `tests/test_message_parser.py` enthielt bisher einen leeren `test_example()` mit einer TODO-Liste
+  - Kernstück ist ein Round-Trip über **alle 7 Firmware-Templates**: generierte Nachricht → Parser → Vergleich Wert für Wert, inklusive aller Digital-Bits
+  - Die Sollwerte stammen bewusst aus dem DAQPRJ-XML selbst, nicht aus Parser oder Generator — sonst würden sich Fehler auf beiden Seiten gegenseitig aufheben
+  - Regressionstests für die Hex-Dekodierung **und** die Template-Korrektur an einem echten Telnet-Mitschnitt (Nano.2(.3) 15, 155 Werte, aus Issue #17)
+  - Protokolllängen aller Templates sind als Festwerte gepinnt: eine Template-Änderung, die eine Länge verschiebt, wird damit sichtbar statt still
+  - Gegenprobe: nimmt man die beiden Protokoll-Fixes einzeln zurück, schlagen 9 bzw. 7 Tests fehl
 
 ### ✨ Improved
 
@@ -97,6 +100,14 @@ und dieses Projekt folgt [Semantic Versioning](https://semver.org/lang/de/).
   - Heizraum-Temperatursensoren (THD-005) hinzugefügt
   - ApexCharts 30-Tage-Übersicht mit optimierter Konfiguration (yaxis, transform, columnWidth)
   - Warmwasser-Entity auf `warmwasser_b` korrigiert
+
+### 📄 Docs
+
+- **Architektur-Konzept: Cloud Control & ClimateEntity** (`docs/CLOUD_CLIMATE_ARCHITECTURE.md`)
+  - Dokumentiert die reverse-engineered Hargassner Connect Cloud REST API (OAuth, Endpunkte, Widget-Struktur)
+  - ClimateEntity-Mapping (HVAC-Modi, Temperatursteuerung, Heizkurve)
+  - Companion-Architektur: Separate Cloud-Integration neben bestehender lokaler Telnet-Integration
+  - Roadmap für zukünftige Zusammenarbeit mit [@knirzinger](https://github.com/knirzinger)
 
 ## [0.3.1] - 2026-03-12
 
