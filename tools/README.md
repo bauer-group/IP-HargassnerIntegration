@@ -175,7 +175,9 @@ python telnet_tester.py 192.168.1.100 --count 20 --timeout 5
 
 ### Beschreibung
 
-Der `message_generator.py` generiert realistische Test-Nachrichten basierend auf Firmware-Templates.
+Der `message_generator.py` generiert protokollgültige Test-Nachrichten aus einem Firmware-Template.
+
+Die Nachricht wird direkt aus dem DAQPRJ-Template aufgebaut und hat daher immer exakt die Werteanzahl, die der Parser für diese Firmware erwartet: erst der Analog-Block (eine Position je `ANALOG`-Kanal-`id`), dann die Digital-Words (je `DIGITAL`-`id` ein Word, als Grossbuchstaben-Hex).
 
 ### Verwendung
 
@@ -205,13 +207,15 @@ python message_generator.py --count 50
 
 ### Parameter
 
-- `--firmware` - Firmware-Version (default: V14_1HAR_q1)
-- `--count` - Anzahl Nachrichten (default: 1)
-- `--state` - Kessel-Zustand:
-  - `off` - Aus
-  - `ignition` - Zündung
-  - `heating` - Leistungsbrand
-  - `cleaning` - Reinigung
+- `--firmware`, `-f` - Firmware-Version (default: V14_1HAR_q1)
+- `--count`, `-c` - Anzahl Nachrichten (default: 1)
+- `--state`, `-s` - Kessel-Zustand (default: rotierend über alle Zustände):
+  - `off` - Aus (ZK 1)
+  - `ignition` - Zündung (ZK 5)
+  - `heating` - Leistungsbrand (ZK 7)
+  - `cleaning` - Reinigung (ZK 12)
+- `--format`, `-o` - Ausgabeformat: `text` (default) oder `json`
+- `--seed` - Startwert des Zufallsgenerators, für reproduzierbare Ausgabe in Tests
 
 ### Verwendungszwecke
 

@@ -21,6 +21,13 @@ und dieses Projekt folgt [Semantic Versioning](https://semver.org/lang/de/).
 
 ### 🐛 Fixed
 
+- **Message Generator erzeugte protokollungültige Nachrichten**
+  - Er gab einen Wert je *eindeutigem Parameternamen* aus und schätzte die Anzahl der Digital-Words — die Länge stimmte bei **keinem** der 7 Templates (Abweichungen -1 bis +13 Werte)
+  - Neu wird die Nachricht positionsgenau aus dem DAQPRJ aufgebaut: eine Position je `ANALOG`-`id`, danach je `DIGITAL`-`id` ein Word als Grossbuchstaben-Hex
+  - Damit bleiben auch mehrfach vergebene Kanalnamen erhalten (`V14_0m5` nennt 7 Kanäle `DUMMY`) und nicht deklarierte Word-Ids behalten ihren Platz
+  - Werte werden gemäss `dop`-Attribut formatiert (`dop='0'` → `37`, `dop='2'` → `0.00`, ohne `dop` → eine Nachkommastelle)
+  - `--state` existiert jetzt tatsächlich (war dokumentiert, aber nicht implementiert — die dokumentierten Beispiele brachen ab), neu dazu `--seed` für reproduzierbare Ausgabe
+
 - **Digital-Werte wurden dezimal statt hexadezimal gelesen** ([Issue #17](https://github.com/bauer-group/IP-HargassnerIntegration/issues/17))
   - Der Kessel überträgt die Digital-Words als **Grossbuchstaben-Hex** (`E`, `21`, `2007`), `message_parser.py` hat sie mit `int()` als Dezimalzahl gelesen
   - Folge 1: Ein Word mit Hex-Buchstaben (z.B. `E`) warf `ValueError` — **sämtliche Kanäle dieses Words fielen ersatzlos aus** (im Referenz-Mitschnitt 15 Binärsensoren)

@@ -1,10 +1,18 @@
 #!/usr/bin/env python3
 """Test Message Generator for Hargassner Integration.
 
-Generates realistic test messages for development and testing purposes.
+Generates protocol-valid test messages from a firmware template, for development
+and testing without a real boiler.
+
+The output is built from the DAQPRJ template itself, so a generated message always
+has exactly the value count the parser expects for that firmware:
+
+    analog block   positions 0..N-1, one per ANALOG CHANNEL id
+    digital block  N following words, each packing the DIGITAL CHANNEL bits of one id
 
 Usage:
-    python message_generator.py [--firmware <version>] [--count <n>] [--format <format>]
+    python message_generator.py [--firmware <version>] [--count <n>]
+                                [--state <state>] [--format <format>] [--seed <n>]
 
 Examples:
     python message_generator.py
@@ -16,9 +24,11 @@ import argparse
 import json
 import random
 import sys
+import xml.etree.ElementTree as ET
+from collections import defaultdict
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Tuple
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
@@ -33,27 +43,84 @@ except (ImportError, FileNotFoundError) as err:
     sys.exit(1)
 
 
-class MessageGenerator:
-    """Generate realistic test messages for Hargassner boilers."""
+# Boiler states, as ZK values. Names match the documented --state choices; the
+# integers are the indices into BOILER_STATES_EN/DE in const.py.
+BOILER_STATES: Dict[str, int] = {
+    "off": 1,
+    "ignition": 5,
+    "heating": 7,
+    "cleaning": 12,
+}
 
-    def __init__(self, firmware: str = "V14_1HAR_q1"):
+# How likely a defined digital bit is set, per state. Only a plausibility knob -
+# a boiler that is off has few active outputs, one at full firing has many.
+_BIT_DENSITY: Dict[str, float] = {
+    "off": 0.10,
+    "ignition": 0.40,
+    "heating": 0.55,
+    "cleaning": 0.35,
+}
+
+# Channels whose name starts with this only reserve a position in the message
+_PLACEHOLDER_PREFIX = "dummy"
+
+
+class MessageGenerator:
+    """Generate protocol-valid test messages for Hargassner boilers."""
+
+    def __init__(self, firmware: str = "V14_1HAR_q1", seed: Optional[int] = None) -> None:
         """Initialize generator.
 
         Args:
             firmware: Firmware version to generate messages for
-        """
-        self.firmware = firmware
+            seed: Optional RNG seed, for reproducible output in tests
 
+        Raises:
+            ValueError: If the firmware key is unknown or the template is inconsistent
+        """
         if firmware not in FIRMWARE_TEMPLATES:
             raise ValueError(f"Unknown firmware: {firmware}")
 
-        # Parse template to get parameter structure
+        self.firmware = firmware
+        self._random = random.Random(seed)
+
+        root = ET.fromstring(FIRMWARE_TEMPLATES[firmware])
+
+        # Analog channels keyed by id - the id IS the position in the message, so
+        # this must not be keyed by name: V14_0m5 reuses the name "DUMMY" for seven
+        # separate channels, and a name-keyed structure would silently lose six.
+        self._analog: Dict[int, Tuple[str, Optional[str]]] = {}
+        for channel in root.findall(".//ANALOG/CHANNEL"):
+            self._analog[int(channel.get("id"))] = (
+                channel.get("name", ""),
+                channel.get("dop"),
+            )
+
+        # Digital channels grouped into the words they are packed into
+        self._digital_bits: Dict[int, List[int]] = defaultdict(list)
+        for channel in root.findall(".//DIGITAL/CHANNEL"):
+            self._digital_bits[int(channel.get("id"))].append(int(channel.get("bit", 0)))
+
+        self.analog_count = max(self._analog) + 1 if self._analog else 0
+        self.digital_word_count = max(self._digital_bits) + 1 if self._digital_bits else 0
+
         self.parser = HargassnerMessageParser(firmware)
         self.param_count = len(self.parser.parameters)
 
-        # Realistic value ranges for common parameters
-        self.value_ranges = {
-            "ZK": (0, 12),  # Boiler state
+        # The generator derives its length the same way the parser does. If these
+        # ever disagree, the template is malformed - fail loudly rather than emit
+        # messages that look valid but are not.
+        if self.analog_count + self.digital_word_count != self.parser.expected_length:
+            raise ValueError(
+                f"Template {firmware} is inconsistent: "
+                f"{self.analog_count} analog + {self.digital_word_count} digital words "
+                f"!= parser expected_length {self.parser.expected_length}"
+            )
+
+        self.expected_length = self.parser.expected_length
+
+        # Realistic value ranges for well-known parameters
+        self.value_ranges: Dict[str, Tuple[float, float]] = {
             "O2": (0.0, 21.0),  # O2 percentage
             "TK": (20.0, 90.0),  # Boiler temp
             "TKsoll": (50.0, 85.0),  # Target temp
@@ -69,108 +136,128 @@ class MessageGenerator:
             "Taus": (-20.0, 40.0),  # Outside temp
             "Lagerstand": (0.0, 5000.0),  # Pellet stock (kg)
             "Verbrauchszähler": (0.0, 50000.0),  # Consumption (kg)
+            "Verbrauchszaehler": (0.0, 50000.0),  # ASCII-normalized variant
         }
 
     def generate_realistic_value(self, param_name: str) -> float:
-        """Generate realistic value for a parameter.
+        """Generate a plausible value for a parameter.
 
         Args:
-            param_name: Parameter name
+            param_name: Parameter name from the template
 
         Returns:
             Generated value
         """
-        # Check if we have a specific range
         if param_name in self.value_ranges:
-            min_val, max_val = self.value_ranges[param_name]
-            return round(random.uniform(min_val, max_val), 1)
+            low, high = self.value_ranges[param_name]
+            return self._random.uniform(low, high)
 
-        # Default ranges based on common patterns
+        # Fall back to ranges inferred from the name
         if "temp" in param_name.lower() or param_name.startswith("T"):
-            return round(random.uniform(20.0, 80.0), 1)
-        elif "%" in param_name or "soll" in param_name.lower():
-            return round(random.uniform(0.0, 100.0), 1)
-        elif "Anf" in param_name:
-            return round(random.uniform(0.0, 80.0), 1)
-        else:
-            return round(random.uniform(0.0, 100.0), 1)
+            return self._random.uniform(20.0, 80.0)
+        if "soll" in param_name.lower() or "Anf" in param_name:
+            return self._random.uniform(0.0, 80.0)
+        return self._random.uniform(0.0, 100.0)
 
-    def generate_message(self, state: str = "running") -> str:
-        """Generate a realistic pm message.
+    @staticmethod
+    def format_value(value: float, dop: Optional[str]) -> str:
+        """Render a value the way the boiler renders it.
+
+        The DAQPRJ 'dop' attribute carries the number of decimal places the channel
+        is displayed with, and the telnet stream follows it: dop='0' emits "37",
+        dop='2' emits "0.00". Channels with no dop attribute emit one decimal.
 
         Args:
-            state: Boiler state - "off", "starting", "running", "cooling"
+            value: Numeric value
+            dop: Value of the channel's dop attribute, or None if absent
+
+        Returns:
+            Formatted value
+        """
+        try:
+            decimals = int(dop) if dop is not None else 1
+        except ValueError:
+            decimals = 1
+        return f"{value:.{max(decimals, 0)}f}"
+
+    def _analog_value(self, index: int, state: str) -> str:
+        """Build one analog value for the given message position."""
+        name, dop = self._analog.get(index, ("", "0"))
+
+        # A position the template does not describe still has to be filled, or every
+        # later index shifts. Emit a neutral zero.
+        if not name:
+            return self.format_value(0.0, dop)
+
+        if name == "ZK":
+            return self.format_value(float(BOILER_STATES[state]), dop)
+
+        if name.lower().startswith(_PLACEHOLDER_PREFIX):
+            return self.format_value(0.0, dop)
+
+        return self.format_value(self.generate_realistic_value(name), dop)
+
+    def _digital_word(self, word_id: int, state: str) -> str:
+        """Pack one digital word.
+
+        Only bits the template actually defines are ever set, so a generated message
+        round-trips: parsing it back yields exactly the booleans that were packed,
+        with no phantom channels.
+
+        Words are emitted as uppercase hexadecimal without prefix or padding, which
+        is how the boiler emits them ('E', '21', '2007').
+        """
+        density = _BIT_DENSITY[state]
+        word = 0
+        for bit in self._digital_bits.get(word_id, []):
+            if self._random.random() < density:
+                word |= 1 << bit
+        return format(word, "X")
+
+    def generate_message(self, state: str = "heating") -> str:
+        """Generate one pm message.
+
+        Args:
+            state: Boiler state - one of BOILER_STATES
 
         Returns:
             Generated pm message string
+
+        Raises:
+            ValueError: If the state is unknown
         """
-        values = []
+        if state not in BOILER_STATES:
+            raise ValueError(
+                f"Unknown state: {state} (expected one of {', '.join(BOILER_STATES)})"
+            )
 
-        # Get analog parameters only (digital are packed separately)
-        analog_params = [p for p in self.parser.parameters if hasattr(p, 'is_digital') and not p.is_digital]
-
-        # Handle case where parameters is a list of strings (parameter names)
-        if analog_params and isinstance(analog_params[0], str):
-            analog_params = [{'name': p} for p in analog_params]
-
-        for i, param in enumerate(analog_params):
-            param_name = param.name if hasattr(param, 'name') else param.get('name', f'param_{i}')
-
-            if False:  # Digital params handled separately
-                pass  # Not used
-            else:
-                # Generate based on parameter name
-                if param_name == "ZK":  # Boiler state
-                    if state == "off":
-                        values.append("1")  # Off
-                    elif state == "starting":
-                        values.append(str(random.randint(2, 6)))  # Starting states
-                    elif state == "running":
-                        values.append("7")  # Full firing
-                    else:  # cooling
-                        values.append("8")  # Ember preservation
-                elif param_name in self.value_ranges:
-                    val = self.generate_realistic_value(param_name)
-                    values.append(str(val))
-                else:
-                    val = self.generate_realistic_value(param_name)
-                    values.append(str(val))
-
-        # Add digital parameter values (packed as integers)
-        digital_count = sum(1 for p in self.parser.parameters if hasattr(p, 'is_digital') and p.is_digital)
-        if digital_count > 0:
-            # Add some random digital values
-            for _ in range(max(2, (digital_count + 7) // 8)):  # Estimate number of digital integers
-                values.append(str(random.randint(0, 255)))
+        values = [self._analog_value(i, state) for i in range(self.analog_count)]
+        values += [self._digital_word(w, state) for w in range(self.digital_word_count)]
 
         return "pm " + " ".join(values)
 
-    def generate_messages(self, count: int = 1, vary_state: bool = True) -> List[str]:
+    def generate_messages(
+        self, count: int = 1, state: Optional[str] = None
+    ) -> List[str]:
         """Generate multiple messages.
 
         Args:
             count: Number of messages to generate
-            vary_state: Whether to vary boiler state
+            state: Fixed boiler state, or None to vary across messages
 
         Returns:
             List of generated messages
         """
-        messages = []
-        states = ["running", "running", "running", "starting", "off"]  # Weighted towards running
+        # Weighted towards heating - that is where most parameters carry signal
+        rotation = ["heating", "heating", "heating", "ignition", "cleaning", "off"]
 
-        for i in range(count):
-            if vary_state:
-                state = random.choice(states)
-            else:
-                state = "running"
-
-            msg = self.generate_message(state)
-            messages.append(msg)
-
-        return messages
+        return [
+            self.generate_message(state or self._random.choice(rotation))
+            for _ in range(count)
+        ]
 
 
-def main():
+def main() -> None:
     """Main entry point."""
     parser = argparse.ArgumentParser(
         description="Generate test messages for Hargassner integration",
@@ -180,7 +267,7 @@ Examples:
   python message_generator.py
   python message_generator.py --count 5
   python message_generator.py --firmware V14_1HAR_q1 --format json
-  python message_generator.py --count 10 --no-vary > test_messages.txt
+  python message_generator.py --count 10 --state heating > test_messages.txt
         """,
     )
 
@@ -199,6 +286,13 @@ Examples:
         help="Number of messages to generate (default: 1)",
     )
     parser.add_argument(
+        "--state",
+        "-s",
+        choices=list(BOILER_STATES),
+        default=None,
+        help="Boiler state (default: vary across messages)",
+    )
+    parser.add_argument(
         "--format",
         "-o",
         choices=["text", "json"],
@@ -206,28 +300,27 @@ Examples:
         help="Output format (default: text)",
     )
     parser.add_argument(
-        "--no-vary",
-        action="store_true",
-        help="Don't vary boiler state (always running)",
+        "--seed",
+        type=int,
+        default=None,
+        help="RNG seed, for reproducible output",
     )
 
     args = parser.parse_args()
 
-    # Create generator
     try:
-        generator = MessageGenerator(args.firmware)
-    except ValueError as e:
-        print(f"Error: {e}", file=sys.stderr)
+        generator = MessageGenerator(args.firmware, seed=args.seed)
+    except ValueError as err:
+        print(f"Error: {err}", file=sys.stderr)
         sys.exit(1)
 
-    # Generate messages
-    messages = generator.generate_messages(args.count, vary_state=not args.no_vary)
+    messages = generator.generate_messages(args.count, state=args.state)
 
-    # Output
     if args.format == "json":
         output = {
             "firmware": args.firmware,
             "parameter_count": generator.param_count,
+            "expected_length": generator.expected_length,
             "generated_at": datetime.now().isoformat(),
             "messages": messages,
         }
