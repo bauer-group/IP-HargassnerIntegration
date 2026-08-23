@@ -398,6 +398,7 @@ FIRMWARE_VERSIONS: Final = [
     "V14_0m5",  # Classic Lambda 40L-60L
     "V14_0d",  # HSV/CL 9-60KW (Issue #14)
     "V40_0HAR_az15",  # Nano 65
+    "V14_1HAR_q_nano2_zuspuf_aup3",  # Nano.2(.3) 15 + auxiliary buffer/AUP (Issue #17)
 ]
 
 # Energy calculation defaults

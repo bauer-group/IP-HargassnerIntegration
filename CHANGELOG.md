@@ -7,6 +7,14 @@ und dieses Projekt folgt [Semantic Versioning](https://semver.org/lang/de/).
 
 ## [0.3.2] - UNRELEASED
 
+### ✨ Added
+
+- **Firmware-Unterstützung für Nano.2(.3) 15 + Zusatzpuffer/AUP (V14_1HAR_q_nano2_zuspuf_aup3)** ([Issue #17](https://github.com/bauer-group/IP-HargassnerIntegration/issues/17))
+  - Community-Beitrag von [@pschimik](https://github.com/pschimik) via DAQ-Template
+  - 147 Analog-Parameter + 8 Digital-Words = 155 Werte (gegen echten Telnet-Mitschnitt verifiziert)
+  - Zusätzlich gegenüber `V14_1HAR_q1`: AUP-Positionierung (132–135), Zusatzpuffer 1 (136–144), Wasserdruck (145)
+  - 12 neue Parameter-Beschreibungen (DE/EN) für Zusatzpuffer und Heizkreispumpen 3/4
+
 ### 🐛 Fixed
 
 - **Pelletverbrauch-Hochrechnung: HDD-Berechnung monatsgenau statt Tagesdurchschnitt**
