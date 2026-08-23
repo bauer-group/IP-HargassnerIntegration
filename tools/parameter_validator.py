@@ -14,22 +14,28 @@ Examples:
 
 import argparse
 import sys
+import xml.etree.ElementTree as ET
 from pathlib import Path
 from typing import Dict, List, Set, Tuple
 
-# Add parent directory to path
-sys.path.insert(0, str(Path(__file__).parent.parent / "custom_components" / "bauergroup_hargassnerintegration"))
+sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 try:
-    from src.firmware_templates import (
-        FIRMWARE_TEMPLATES,
-        PARAMETER_DESCRIPTIONS,
-    )
-    from src.message_parser import HargassnerMessageParser
-except ImportError:
-    print("Error: Could not import firmware templates", file=sys.stderr)
+    from _integration_import import load_module
+
+    _templates = load_module("firmware_templates")
+    FIRMWARE_TEMPLATES = _templates.FIRMWARE_TEMPLATES
+    PARAMETER_DESCRIPTIONS = _templates.PARAMETER_DESCRIPTIONS
+    HargassnerMessageParser = load_module("message_parser").HargassnerMessageParser
+except (ImportError, FileNotFoundError) as err:
+    print(f"Error: Could not import firmware templates: {err}", file=sys.stderr)
     print("Make sure the integration is in the correct directory structure", file=sys.stderr)
     sys.exit(1)
+
+
+def _is_placeholder(name: str) -> bool:
+    """Return True for reserved-position channels that carry no value."""
+    return name.lower().startswith("dummy")
 
 
 class ParameterValidator:
@@ -83,7 +89,7 @@ class ParameterValidator:
 
         for firmware, template in FIRMWARE_TEMPLATES.items():
             try:
-                parser = HargassnerMessageParser(template)
+                parser = HargassnerMessageParser(firmware)
                 param_count = len(parser.parameters)
 
                 analog_count = sum(1 for p in parser.parameters if not p.is_digital)
@@ -107,7 +113,7 @@ class ParameterValidator:
 
         for firmware, template in FIRMWARE_TEMPLATES.items():
             try:
-                parser = HargassnerMessageParser(template)
+                parser = HargassnerMessageParser(firmware)
                 for param in parser.parameters:
                     all_params.add(param.name)
             except Exception:
@@ -148,29 +154,51 @@ class ParameterValidator:
         self.info.append(f"[STAT] Description coverage: {coverage:.1f}% ({len(described_params & all_params)}/{len(all_params)})")
 
     def _check_duplicates(self):
-        """Check for duplicate parameters within templates."""
+        """Check for duplicate parameter names within templates.
+
+        Reads the XML directly: the parser keys its parameters by name, so any
+        collision has already silently overwritten the earlier channel by the
+        time ``parser.parameters`` is available.
+        """
         print("Checking for duplicates...")
 
         for firmware, template in FIRMWARE_TEMPLATES.items():
             try:
-                parser = HargassnerMessageParser(template)
-                param_names = [p.name for p in parser.parameters if not p.is_digital]
+                root = ET.fromstring(template)
+            except ET.ParseError:
+                continue  # already reported by _check_template_parsing
 
-                # Find duplicates
-                seen = set()
-                duplicates = set()
-                for name in param_names:
+            for section in ("ANALOG", "DIGITAL"):
+                names = [
+                    channel.get("name")
+                    for channel in root.findall(f".//{section}/CHANNEL")
+                ]
+
+                seen: Set[str] = set()
+                duplicates: Set[str] = set()
+                for name in names:
                     if name in seen:
                         duplicates.add(name)
                     seen.add(name)
 
-                if duplicates:
-                    self.errors.append(
-                        f"[ERROR] {firmware}: Duplicate analog parameters: {', '.join(sorted(duplicates))}"
-                    )
+                if not duplicates:
+                    continue
 
-            except Exception:
-                pass
+                # Placeholder channels are expected to repeat - they only reserve
+                # a position in the message and carry no value of their own
+                real = sorted(d for d in duplicates if not _is_placeholder(d))
+                padding = sorted(d for d in duplicates if _is_placeholder(d))
+
+                if real:
+                    self.errors.append(
+                        f"[ERROR] {firmware}: Duplicate {section.lower()} parameters "
+                        f"(later channel overwrites earlier): {', '.join(real)}"
+                    )
+                if padding:
+                    self.warnings.append(
+                        f"[WARN] {firmware}: Duplicate {section.lower()} placeholder "
+                        f"names collapse into one entity: {', '.join(padding)}"
+                    )
 
     def _check_naming_conventions(self, all_params: Set[str]):
         """Check parameter naming conventions.

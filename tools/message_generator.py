@@ -20,14 +20,15 @@ from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Optional
 
-# Add parent directory to path to import firmware templates
-sys.path.insert(0, str(Path(__file__).parent.parent / "custom_components" / "bauergroup_hargassnerintegration"))
+sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 try:
-    from src.firmware_templates import FIRMWARE_TEMPLATES
-    from src.message_parser import HargassnerMessageParser
-except ImportError:
-    print("Error: Could not import firmware templates", file=sys.stderr)
+    from _integration_import import load_module
+
+    FIRMWARE_TEMPLATES = load_module("firmware_templates").FIRMWARE_TEMPLATES
+    HargassnerMessageParser = load_module("message_parser").HargassnerMessageParser
+except (ImportError, FileNotFoundError) as err:
+    print(f"Error: Could not import firmware templates: {err}", file=sys.stderr)
     print("Make sure the integration is in the correct directory structure", file=sys.stderr)
     sys.exit(1)
 
@@ -47,7 +48,7 @@ class MessageGenerator:
             raise ValueError(f"Unknown firmware: {firmware}")
 
         # Parse template to get parameter structure
-        self.parser = HargassnerMessageParser(FIRMWARE_TEMPLATES[firmware])
+        self.parser = HargassnerMessageParser(firmware)
         self.param_count = len(self.parser.parameters)
 
         # Realistic value ranges for common parameters

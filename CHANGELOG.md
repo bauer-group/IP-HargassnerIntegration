@@ -21,6 +21,11 @@ und dieses Projekt folgt [Semantic Versioning](https://semver.org/lang/de/).
 
 ### 🐛 Fixed
 
+- **Entwickler-Tools waren nicht lauffähig**
+  - `tools/parameter_validator.py` und `tools/message_generator.py` importierten aus einem nicht mehr existierenden `src/`-Layout und brachen sofort ab
+  - Beide Tools übergaben zudem das Template-XML statt des Firmware-Keys an `HargassnerMessageParser` — der Parser fiel damit still auf `V14_1HAR_q1` zurück und validierte faktisch nur ein einziges Template
+  - Die Duplikat-Prüfung des Validators war wirkungslos (sie las das bereits namens-deduplizierte Parser-Dict) und liest jetzt direkt das XML
+
 - **Nachrichtenlänge-Abweichung war praktisch unsichtbar** ([Issue #17](https://github.com/bauer-group/IP-HargassnerIntegration/issues/17), [Issue #20](https://github.com/bauer-group/IP-HargassnerIntegration/issues/20))
   - Passte das Firmware-Template nicht zum Kessel, wurde die Nachricht trotzdem geparst und die Abweichung nur auf `DEBUG` geloggt — Werte landeten unbemerkt in den falschen Entitäten
   - Jetzt: `WARNING` beim ersten Auftreten und bei jeder Änderung der Länge (kein Log-Spam bei einer Nachricht alle paar Sekunden), `INFO` sobald die Länge wieder passt
