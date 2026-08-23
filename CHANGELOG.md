@@ -9,6 +9,10 @@ und dieses Projekt folgt [Semantic Versioning](https://semver.org/lang/de/).
 
 ### ✨ Added
 
+- **Firmware-Template in den Optionen umstellbar** ([Issue #19](https://github.com/bauer-group/IP-HargassnerIntegration/issues/19))
+  - Die Firmware-Version war bisher nur bei der Ersteinrichtung wählbar — ein Wechsel erforderte Löschen und Neuanlegen der Integration inklusive Verlust der Entity-Historie
+  - Damit lassen sich Zusatzwerte wie die des Solarthermie-Differenzreglers (`V14_1HAR_q1_solar`) ohne Neuanlage aktivieren
+
 - **Firmware-Unterstützung für Nano.2(.3) 15 + Zusatzpuffer/AUP (V14_1HAR_q_nano2_zuspuf_aup3)** ([Issue #17](https://github.com/bauer-group/IP-HargassnerIntegration/issues/17))
   - Community-Beitrag von [@pschimik](https://github.com/pschimik) via DAQ-Template
   - 147 Analog-Parameter + 8 Digital-Words = 155 Werte (gegen echten Telnet-Mitschnitt verifiziert)

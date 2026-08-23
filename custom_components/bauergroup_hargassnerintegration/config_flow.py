@@ -160,6 +160,7 @@ class HargassnerOptionsFlow(config_entries.OptionsFlow):
             return self.async_create_entry(title="", data=user_input)
 
         # Get current values
+        current_firmware = self.config_entry.data.get(CONF_FIRMWARE, "V14_1HAR_q1")
         current_language = self.config_entry.data.get(CONF_LANGUAGE, LANGUAGE_EN)
         current_sensor_set = self.config_entry.data.get(
             CONF_SENSOR_SET, SENSOR_SET_STANDARD
@@ -173,6 +174,9 @@ class HargassnerOptionsFlow(config_entries.OptionsFlow):
 
         data_schema = vol.Schema(
             {
+                vol.Optional(CONF_FIRMWARE, default=current_firmware): vol.In(
+                    FIRMWARE_VERSIONS
+                ),
                 vol.Optional(CONF_LANGUAGE, default=current_language): vol.In(
                     [LANGUAGE_EN, LANGUAGE_DE]
                 ),
