@@ -19,6 +19,15 @@ und dieses Projekt folgt [Semantic Versioning](https://semver.org/lang/de/).
   - Zusätzlich gegenüber `V14_1HAR_q1`: AUP-Positionierung (132–135), Zusatzpuffer 1 (136–144), Wasserdruck (145)
   - 12 neue Parameter-Beschreibungen (DE/EN) für Zusatzpuffer und Heizkreispumpen 3/4
 
+### 🧪 Tests
+
+- **Echte Testsuite statt Platzhalter** (116 Tests, Laufzeit ~1 s)
+  - `tests/test_message_parser.py` enthielt bisher einen leeren `test_example()` mit einer TODO-Liste
+  - Kernstück ist ein Round-Trip über **alle 7 Firmware-Templates**: generierte Nachricht → Parser → Vergleich Wert für Wert, inklusive aller Digital-Bits
+  - Die Sollwerte stammen bewusst aus dem DAQPRJ-XML selbst, nicht aus Parser oder Generator — sonst würden sich Fehler auf beiden Seiten gegenseitig aufheben
+  - Regressionstest für die Hex-Dekodierung an einem echten Telnet-Mitschnitt (Nano.2(.3) 15, 155 Werte, aus Issue #17)
+  - Protokolllängen aller Templates sind als Festwerte gepinnt: eine Template-Änderung, die eine Länge verschiebt, wird damit sichtbar statt still
+
 ### 🐛 Fixed
 
 - **Message Generator erzeugte protokollungültige Nachrichten**
