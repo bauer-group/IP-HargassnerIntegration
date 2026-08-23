@@ -21,6 +21,13 @@ und dieses Projekt folgt [Semantic Versioning](https://semver.org/lang/de/).
 
 ### 🐛 Fixed
 
+- **Digital-Werte wurden dezimal statt hexadezimal gelesen** ([Issue #17](https://github.com/bauer-group/IP-HargassnerIntegration/issues/17))
+  - Der Kessel überträgt die Digital-Words als **Grossbuchstaben-Hex** (`E`, `21`, `2007`), `message_parser.py` hat sie mit `int()` als Dezimalzahl gelesen
+  - Folge 1: Ein Word mit Hex-Buchstaben (z.B. `E`) warf `ValueError` — **sämtliche Kanäle dieses Words fielen ersatzlos aus** (im Referenz-Mitschnitt 15 Binärsensoren)
+  - Folge 2: Rein numerische Words wurden falsch dekodiert (`21` → 33 statt 21) — einzelne Binärsensoren zeigten dauerhaft den falschen Zustand oder wechselten scheinbar grundlos
+  - Nachgewiesen an zwei unabhängigen Anlagen: hexadezimal gelesen setzen die Words **ausschliesslich Bits, die das Template deklariert**, dezimal gelesen setzen sie Bits, die kein Kanal beansprucht
+  - ⚠️ **Verhaltensänderung**: Binärsensoren können nach dem Update ihren Zustand wechseln. Das ist beabsichtigt — die bisherigen Werte waren falsch.
+
 - **Entwickler-Tools waren nicht lauffähig**
   - `tools/parameter_validator.py` und `tools/message_generator.py` importierten aus einem nicht mehr existierenden `src/`-Layout und brachen sofort ab
   - Beide Tools übergaben zudem das Template-XML statt des Firmware-Keys an `HargassnerMessageParser` — der Parser fiel damit still auf `V14_1HAR_q1` zurück und validierte faktisch nur ein einziges Template

@@ -53,8 +53,11 @@ class ParameterDefinition:
             raw_value = values[self.index]
 
             if self.is_digital and self.bit_mask is not None:
-                # Digital parameter - extract bit
-                int_value = int(raw_value)
+                # Digital parameter - extract bit.
+                # Digital words arrive as UPPERCASE HEXADECIMAL, so a word may be a
+                # token like 'E' or '2007'. Read base 10 they either raise (dropping
+                # every channel of that word) or set bits no channel declares.
+                int_value = int(raw_value, 16)
                 return bool(int_value & self.bit_mask)
 
             # Analog parameter - convert to number
