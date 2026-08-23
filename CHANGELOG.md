@@ -21,6 +21,11 @@ und dieses Projekt folgt [Semantic Versioning](https://semver.org/lang/de/).
 
 ### 🐛 Fixed
 
+- **Nachrichtenlänge-Abweichung war praktisch unsichtbar** ([Issue #17](https://github.com/bauer-group/IP-HargassnerIntegration/issues/17), [Issue #20](https://github.com/bauer-group/IP-HargassnerIntegration/issues/20))
+  - Passte das Firmware-Template nicht zum Kessel, wurde die Nachricht trotzdem geparst und die Abweichung nur auf `DEBUG` geloggt — Werte landeten unbemerkt in den falschen Entitäten
+  - Jetzt: `WARNING` beim ersten Auftreten und bei jeder Änderung der Länge (kein Log-Spam bei einer Nachricht alle paar Sekunden), `INFO` sobald die Länge wieder passt
+  - Der Verbindungs-Sensor zeigt zusätzlich `firmware_template`, `expected_length` und `last_message_length` als Attribute — Template-Passung ist damit ohne Debug-Logging prüfbar
+
 - **Pelletverbrauch-Hochrechnung: HDD-Berechnung monatsgenau statt Tagesdurchschnitt**
   - Sensor `hdd_norm_zeitraum` verwendete einen flachen Durchschnitt (`2798 / 365 ≈ 7,67 HDD/Tag`), unabhängig von der saisonalen Verteilung
   - Im Winter (Hauptmessperiode) wurden die HDD massiv unterschätzt → Effizienz (kg/HDD) viel zu hoch → alle Prognosen um Faktor 5–10× überhöht

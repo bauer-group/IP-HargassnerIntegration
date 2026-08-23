@@ -20,6 +20,8 @@ class StatisticsData(TypedDict):
     parse_errors: int
     reconnections: int
     last_error: str | None
+    expected_length: int
+    last_message_length: int
 
 
 class BilingualText(TypedDict):

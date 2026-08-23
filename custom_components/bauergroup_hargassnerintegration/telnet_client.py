@@ -66,6 +66,8 @@ class HargassnerTelnetClient:
             "parse_errors": 0,
             "reconnections": 0,
             "last_error": None,
+            "expected_length": self._parser.expected_length,
+            "last_message_length": 0,
         }
 
         # Callbacks
@@ -268,6 +270,7 @@ class HargassnerTelnetClient:
                 # Parse message
                 try:
                     parsed_data = self._parser.parse_message(line)
+                    self._stats["last_message_length"] = self._parser.last_message_length
 
                     if parsed_data:
                         # Store data

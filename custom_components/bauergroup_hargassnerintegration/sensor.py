@@ -271,6 +271,11 @@ class HargassnerConnectionSensor(HargassnerBaseSensor):
             "reconnections": stats.get("reconnections", 0),
             "last_error": stats.get("last_error"),
             "last_update": self.coordinator.telnet_client.last_update,
+            # Template fit: if these two differ, the selected firmware template does
+            # not match this boiler and values may land in the wrong entities
+            "firmware_template": self._entry.data.get("firmware"),
+            "expected_length": stats.get("expected_length", 0),
+            "last_message_length": stats.get("last_message_length", 0),
         }
 
 

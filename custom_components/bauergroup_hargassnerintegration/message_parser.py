@@ -85,6 +85,10 @@ class HargassnerMessageParser:
         self._firmware_version = firmware_version
         self._parameters: dict[str, ParameterDefinition] = {}
         self._expected_length = 0
+        self._last_message_length = 0
+        # Length of the last message we already warned about - the boiler pushes a
+        # message every few seconds, so warn only when the mismatch actually changes
+        self._warned_length: int | None = None
 
         # Parse firmware template
         self._parse_template()
@@ -170,14 +174,31 @@ class HargassnerMessageParser:
         values = parts[1:]  # Skip 'pm' prefix
 
         # Check message length
+        self._last_message_length = len(values)
+
         if len(values) != self._expected_length:
-            _LOGGER.debug(
-                "Message length mismatch: expected %d, got %d",
+            # Don't fail completely - a boiler with extra boards sends more values
+            # than the template declares, and the leading parameters still line up.
+            # But surface it: every index after the first divergence may be wrong,
+            # which shows up as plausible-looking values in the wrong entities.
+            if self._warned_length != len(values):
+                self._warned_length = len(values)
+                _LOGGER.warning(
+                    "Message length mismatch for firmware template '%s': expected %d "
+                    "values, boiler sent %d. Parameter values may be assigned to the "
+                    "wrong entities. Pick a matching template in the integration "
+                    "options, or report the raw message so a template can be added",
+                    self._firmware_version,
+                    self._expected_length,
+                    len(values),
+                )
+        elif self._warned_length is not None:
+            self._warned_length = None
+            _LOGGER.info(
+                "Message length now matches firmware template '%s' (%d values)",
+                self._firmware_version,
                 self._expected_length,
-                len(values),
             )
-            # Don't fail completely - try to parse what we can
-            # return None
 
         # Parse all parameters
         parsed_data: dict[str, Any] = {}
@@ -198,6 +219,11 @@ class HargassnerMessageParser:
     def expected_length(self) -> int:
         """Return expected message length."""
         return self._expected_length
+
+    @property
+    def last_message_length(self) -> int:
+        """Return the value count of the most recently parsed message."""
+        return self._last_message_length
 
     @property
     def parameters(self) -> list[ParameterDefinition]:
