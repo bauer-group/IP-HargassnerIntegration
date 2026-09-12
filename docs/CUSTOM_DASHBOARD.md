@@ -1210,7 +1210,7 @@ Meist ist die Grundlast zu niedrig angesetzt. Prüfe sie gegen die Sommermonate:
 
 Bei Fragen oder Problemen:
 
-- Öffne ein [Issue auf GitHub](https://github.com/yourusername/yourrepo/issues)
+- Öffne ein [Issue auf GitHub](https://github.com/bauer-group/IP-HargassnerIntegration/issues)
 - Besuche das [Home Assistant Forum](https://community.home-assistant.io/)
 
 ## Lizenz
