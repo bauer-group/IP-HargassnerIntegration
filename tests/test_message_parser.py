@@ -28,12 +28,28 @@ REAL_CAPTURE = (
 )
 REAL_CAPTURE_FIRMWARE = "V14_1HAR_q_nano2_zuspuf_aup3"
 
+# Telnet lines from a Nano PK Plus on V14.1HAR.q, contributed in Issue #21.
+# Seven of the fifteen captured lines: the subset that still reproduces every
+# distinct token seen at every position that varies, so it pins the layout as
+# tightly as the full capture does. 121 values each.
+NANOPKPLUS_CAPTURE = (
+    "pm 1 1.1 7.5 28.8 0 29.2 30 10 33.8 0 0 62.7 61.2 42.2 92 5 0 0 0 63 0 0 30.0 100 30 30 76 76.3 92 2 0 0 10 3 0 5 0 7 0 0 6363 0 15063 0.00 0.00 -3 50.2 24107 28.9 117.9 36 -20.0 -20.0 0.0 20.6 20.9 0.0 1 0 -20.0 0 20.0 20.0 0 1 0 28.1 0 20.0 22.0 0 1 0 28.1 0 20.0 20.5 0 1 0 -20.0 0 20.0 20.0 0 1 0 -20.0 0 62.7 0 0 0 -20.0 0 0.0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.00 2 1000 0 0 1 0 0 0",
+    "pm 1 1.1 7.5 28.7 0 29.2 30 10 33.7 0 0 62.7 61.2 42.2 92 5 0 0 0 63 0 0 30.0 100 30 30 76 76.3 92 2 0 0 11 3 0 0 0 7 0 0 6363 0 15063 0.00 0.00 -3 50.2 24108 28.8 119.8 36 -20.0 -20.0 0.0 20.6 20.9 0.0 1 0 -20.0 0 20.0 20.0 0 1 0 28.1 0 20.0 22.0 0 1 0 28.1 0 20.0 20.5 0 1 0 -20.0 0 20.0 20.0 0 1 0 -20.0 0 62.8 0 0 0 -20.0 0 0.0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.00 2 0 0 0 1 0 0 0",
+    "pm 1 1.1 7.5 28.7 0 29.2 30 10 33.9 0 0 62.7 61.2 42.2 92 5 0 0 0 63 0 0 30.0 100 30 30 76 76.3 92 2 0 0 10 2 0 3 0 7 0 0 6363 0 15063 0.00 0.00 -3 50.2 24107 28.9 117.9 36 -20.0 -20.0 0.0 20.6 20.9 0.0 1 0 -20.0 0 20.0 20.0 0 1 0 28.1 0 20.0 22.0 0 1 0 28.1 0 20.0 20.5 0 1 0 -20.0 0 20.0 20.0 0 1 0 -20.0 0 62.8 0 0 0 -20.0 0 0.0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.00 2 0 0 0 1 0 0 0",
+    "pm 1 1.1 7.5 28.8 0 29.2 30 10 34.0 0 0 62.7 61.2 42.1 92 5 0 0 0 63 0 0 30.0 100 30 30 76 76.3 92 2 0 0 11 2 0 0 0 7 0 0 6363 0 15063 0.00 0.00 -3 50.2 24108 28.9 119.8 36 -20.0 -20.0 0.0 20.6 20.9 0.0 1 0 -20.0 0 20.0 20.0 0 1 0 28.2 0 20.0 22.0 0 1 0 28.1 0 20.0 20.5 0 1 0 -20.0 0 20.0 20.0 0 1 0 -20.0 0 62.8 0 0 0 -20.0 0 0.0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.00 2 0 0 0 1 0 0 0",
+    "pm 1 1.1 7.5 28.8 0 29.2 30 10 34.1 0 0 62.7 61.2 42.1 92 5 0 0 0 63 0 0 30.0 100 30 30 76 76.3 92 2 0 0 10 3 0 4 0 7 0 0 6363 0 15063 0.00 0.00 -3 50.2 24108 28.8 116.0 36 -20.0 -20.0 0.0 20.6 20.9 0.0 1 0 -20.0 0 20.0 20.0 0 1 0 28.2 0 20.0 22.0 0 1 0 28.1 0 20.0 20.5 0 1 0 -20.0 0 20.0 20.0 0 1 0 -20.0 0 62.8 0 0 0 -20.0 0 0.0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.00 2 1000 0 0 1 0 0 0",
+    "pm 1 1.1 7.5 28.7 0 29.2 30 10 34.2 0 0 62.7 61.2 42.1 92 5 0 0 0 63 0 0 30.0 100 30 30 76 76.3 92 2 0 0 11 1 0 4 0 7 0 0 6363 0 15063 0.00 0.00 -3 50.2 24107 28.9 114.2 36 -20.0 -20.0 0.0 20.6 20.9 0.0 1 0 -20.0 0 20.0 20.0 0 1 0 28.2 0 20.0 22.0 0 1 0 28.1 0 20.0 20.5 0 1 0 -20.0 0 20.0 20.0 0 1 0 -20.0 0 62.8 0 0 0 -20.0 0 0.0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.00 2 1000 0 0 1 0 0 0",
+    "pm 1 1.1 7.5 28.8 0 29.2 30 10 33.8 0 0 62.7 61.2 42.1 92 5 0 0 0 63 0 0 30.0 100 30 30 76 76.3 92 2 0 0 11 4 0 1 0 7 0 0 6363 0 15063 0.00 0.00 -3 50.2 24107 28.9 116.0 36 -20.0 -20.0 0.0 20.6 20.9 0.0 1 0 -20.0 0 20.0 20.0 0 1 0 28.2 0 20.0 22.0 0 1 0 28.1 0 20.0 20.5 0 1 0 -20.0 0 20.0 20.0 0 1 0 -20.0 0 62.8 0 0 0 -20.0 0 0.0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.00 2 0 0 0 1 0 0 0",
+)
+NANOPKPLUS_FIRMWARE = "V14_1HAR_q1_nanopkplus"
+
 EXPECTED_LENGTHS = {
     "V14_0HAR_q": 120,
     "V14_0d": 171,
     "V14_0m5": 154,
     "V14_1HAR_q1": 120,
     "V14_1HAR_q1_legacy": 121,
+    "V14_1HAR_q1_nanopkplus": 121,
     "V14_1HAR_q1_solar": 140,
     "V14_1HAR_q_nano2_zuspuf_aup3": 155,
     "V40_0HAR_az15": 157,
@@ -295,3 +311,84 @@ def test_legacy_template_keeps_the_superseded_layout():
     assert names.index("TBs_1") < names.index("TB1")
     assert digital.get((8, 0)) == "Reserved_8"
     assert HargassnerMessageParser("V14_1HAR_q1_legacy").expected_length == 121
+
+
+def test_nanopkplus_capture_parses_completely():
+    """Every captured line yields every parameter the variant declares."""
+    parser = HargassnerMessageParser(NANOPKPLUS_FIRMWARE)
+
+    assert parser.expected_length == 121
+
+    for message in NANOPKPLUS_CAPTURE:
+        assert len(message.split()) - 1 == 121
+        parsed = parser.parse_message(message)
+        assert parsed is not None
+        assert [p.name for p in parser.parameters if p.name not in parsed] == []
+
+    parsed = parser.parse_message(NANOPKPLUS_CAPTURE[0])
+
+    # Readings the reporter could confirm against the boiler display
+    assert parsed["ZK"]["value"] == 1  # Off
+    assert parsed["TK"]["value"] == 28.8
+    assert parsed["TPo"]["value"] == 62.7
+    assert parsed["Verbrauchszähler"]["value"] == 15063
+
+    # The channel that made the misalignment visible: read two positions early,
+    # the 24 V supply rail appeared as a ~24000 °C burner temperature (issue #22)
+    assert parsed["U Netzteil"]["value"] == 24107
+    assert parsed["U Netzteil"]["unit"] == "mV"
+    assert parsed["BRT"]["value"] == 117.9
+
+
+def test_nanopkplus_capture_obeys_the_dop_formatting_rules():
+    """The variant's channel order agrees with how this boiler prints values."""
+    geometry = build_geometry(NANOPKPLUS_FIRMWARE)
+
+    assert {m: v for m in NANOPKPLUS_CAPTURE if (v := dop_violations(geometry, m))} == {}
+
+
+def test_nanopkplus_matches_manufacturer_signatures():
+    """Uninstalled circuits and boilers read the way the factory recording does."""
+    geometry = build_geometry(NANOPKPLUS_FIRMWARE)
+    values = NANOPKPLUS_CAPTURE[0].split()[1:]
+    at = {name: values[i] for i, (name, _) in geometry.analog.items()}
+
+    block = ("TVL_{0}", "TVLs_{0}", "TRA_{0}", "TRs_{0}", "HKZustand_{0}",
+             "FR{0} Zustand", "HKP{0} Status")
+    sentinel = ["-20.0", "0", "20.0", "20.0", "0", "1", "0"]
+
+    # A and B are not installed on this boiler and carry the factory sentinel
+    assert [at[part.format("A")] for part in block] == sentinel
+    assert [at[part.format("B")] for part in block] == sentinel
+
+    # 1 and 2 are installed, so they must not read as the sentinel
+    assert [at[part.format("1")] for part in block] != sentinel
+    assert [at[part.format("2")] for part in block] != sentinel
+
+    # DHW boilers A and B absent, boiler 1 present
+    assert [at["TBA"], at["TBs_A"]] == ["-20.0", "0"]
+    assert [at["TBB"], at["TBs_B"]] == ["-20.0", "0"]
+    assert at["TB1"] == "62.7"
+
+    # Wasserdruck is the last analog channel and the only two-decimal value there
+    assert geometry.analog[geometry.analog_count - 1][0] == "Wasserdruck"
+    assert at["Wasserdruck"] == "0.00"
+
+
+def test_nanopkplus_digital_words_set_only_declared_bits():
+    """No captured word sets a bit no channel claims.
+
+    A word that sets an undeclared bit is the signature of a wrong analog/digital
+    split: the stock V14_1HAR_q1 read this boiler's last analog value ('0.00') as
+    its first digital word, which is not even valid hexadecimal.
+    """
+    geometry = build_geometry(NANOPKPLUS_FIRMWARE)
+
+    for message in NANOPKPLUS_CAPTURE:
+        words = message.split()[1:][geometry.analog_count:]
+        assert len(words) == geometry.digital_word_count
+        for index, token in enumerate(words):
+            undeclared = int(token, 16) & ~geometry.declared_mask.get(index, 0)
+            assert undeclared == 0, (
+                f"word {index} = {token!r} sets undeclared bits {undeclared:#x}"
+            )

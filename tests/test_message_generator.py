@@ -32,6 +32,7 @@ EXPECTED_LENGTHS = {
     "V14_0m5": 154,
     "V14_1HAR_q1": 120,
     "V14_1HAR_q1_legacy": 121,
+    "V14_1HAR_q1_nanopkplus": 121,
     "V14_1HAR_q1_solar": 140,
     "V14_1HAR_q_nano2_zuspuf_aup3": 155,
     "V40_0HAR_az15": 157,
