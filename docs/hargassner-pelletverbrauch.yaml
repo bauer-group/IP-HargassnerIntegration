@@ -342,3 +342,4 @@ template:
                              - states('sensor.hdd_norm_bis_heute') | float, 0] | max %}
           {{ (states('input_number.pelletverbrauch_grundlast_warmwasser') | float * resttage
               + states('sensor.pellets_pro_hdd_norm') | float * hdd_rest) | round(1) }}
+              
