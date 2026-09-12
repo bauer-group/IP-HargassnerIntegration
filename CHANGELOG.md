@@ -5,7 +5,7 @@ Alle wichtigen Änderungen an diesem Projekt werden in dieser Datei dokumentiert
 Das Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/),
 und dieses Projekt folgt [Semantic Versioning](https://semver.org/lang/de/).
 
-## [Unreleased]
+## [0.5.0] - 2026-09-12
 
 > **⚠️ Upgrade-Hinweis:** Diese Version korrigiert das Standard-Template `V14_1HAR_q1`
 > gegen die Kanaldefinition des Herstellers. **Sensorwerte können nach dem Update
