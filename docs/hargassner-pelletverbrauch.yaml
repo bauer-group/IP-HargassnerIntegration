@@ -1,0 +1,344 @@
+################################################################################
+# Hargassner HG-PK32 - Pelletverbrauch, Zaehlung und Hochrechnung
+#
+# Begleitkonfiguration zur Integration bauergroup_hargassnerintegration.
+# Stand 12.09.2026. Setzt voraus, dass die Integration
+#   sensor.hg_pk32_pelletverbrauch   (kumulativer Zaehler, kg, total_increasing)
+#   sensor.hg_pk32_aussentemperatur  (nur fuer die optionale Ersatzquelle)
+# bereitstellt.
+#
+# Als Package einbinden (configuration.yaml):
+#   homeassistant:
+#     packages: !include_dir_named packages
+# und diese Datei nach packages/ legen. Alternativ die vier Bloecke auf die
+# jeweiligen Includes verteilen (input_number, input_datetime, utility_meter,
+# template, automation).
+#
+# --- KORREKTUREN GEGENUEBER DER VORIGEN FASSUNG -------------------------------
+#
+# 1) Zwei-Komponenten-Modell statt reiner HDD-Skalierung.
+#    Vorher galt der gesamte Verbrauch als wetterabhaengig. Die Warmwasser-
+#    bereitung laeuft aber ganzjaehrig. Im Sommer geht HDD gegen null, der
+#    Verbrauch nicht - kg/HDD explodiert, die Jahreshochrechnung ebenfalls.
+#    Gemessen: 46,312 kg/HDD, Jahresprognose 129.581 kg bei 3.461 kg Ist.
+#    Jetzt:  Verbrauch = Grundlast * Tage + kg/HDD * HDD
+#
+# 2) Der Anker (Startwert + Startzeit) wird von der Automatisierung jetzt
+#    gemeinsam gesetzt. Vorher wurde nur die Startzeit aktualisiert, der
+#    Startwert nie - beide liefen auseinander.
+#
+# 3) Reset-Erkennung gehaertet. Vorher:
+#       {{ to_state.state | float(0) < from_state.state | float(0) }}
+#    float(0) greift auch bei 'unavailable', also zaehlte jeder Ausfall des
+#    Zaehlers als Reset. Jetzt: mindestens 100 kg Rueckgang UND hoechstens
+#    halber Wert, beide Seiten muessen Zahlen sein.
+#
+# 4) availability statt | float(0) in den Templates. Bei Zaehlerausfall lieferte
+#    float(0) einen negativen Verbrauch, den "verbrauch > 0" auf 0 filterte -
+#    alle Prognosen sprangen still auf 0.
+#
+# 5) Jahres-HDD wird aus der Monatstabelle summiert statt als 2798 hart
+#    eingetragen. Monatsschleife von 24 auf 130 erweitert.
+#
+# 6) Neu: sensor.hdd_norm_bis_heute (ersetzt das dauerhaft unavailable
+#    hdd_norm_bis_monat) und sensor.pelletverbrauch_heizanteil.
+################################################################################
+
+input_number:
+
+  hg_pk32_pelletverbrauch_startwert:
+    name: Startwert Pelletverbrauchszaehler
+    min: 0
+    max: 999999
+    step: 1
+    mode: box
+    unit_of_measurement: "kg"
+    icon: mdi:fire
+
+  # Warmwasser-Grundlast. Einmal jaehrlich nachziehen:
+  # Verbrauch Juli + August geteilt durch 62.
+  # 2026: 154 kg + 163 kg / 62 = 5,11 kg/Tag
+  pelletverbrauch_grundlast_warmwasser:
+    name: Pelletverbrauch Grundlast (Warmwasser)
+    min: 0
+    max: 50
+    step: 0.01
+    mode: box
+    unit_of_measurement: "kg/d"
+    icon: mdi:water-boiler
+
+
+input_datetime:
+
+  hg_pk32_pelletverbrauch_startzeit:
+    name: Startzeit Pelletverbrauchszaehler
+    has_date: true
+    has_time: true
+
+
+################################################################################
+# Utility Meter - aus der laufenden Konfiguration rekonstruiert, nicht aus der
+# Originaldatei gelesen. Vor dem Uebernehmen gegen den eigenen Bestand pruefen.
+################################################################################
+utility_meter:
+
+  hg_pk32_pelletverbrauch_tag:
+    source: sensor.hg_pk32_pelletverbrauch
+    cycle: daily
+
+  hg_pk32_pelletverbrauch_woche:
+    source: sensor.hg_pk32_pelletverbrauch
+    cycle: weekly
+
+  hg_pk32_pelletverbrauch_monat:
+    source: sensor.hg_pk32_pelletverbrauch
+    cycle: monthly
+
+  hg_pk32_pelletverbrauch_jahr:
+    source: sensor.hg_pk32_pelletverbrauch
+    cycle: yearly
+
+
+automation:
+
+  - id: pelletverbrauch_reset_startzeit
+    alias: "Building Services, Pelletverbrauch: Anker aktualisieren bei Zaehler-Reset"
+    description: >
+      Setzt bei einem echten Reset des Pelletzaehlers beide Ankerwerte neu:
+      Startzeit UND Startwert. Als Reset gilt nur ein Rueckgang um mindestens
+      100 kg auf hoechstens die Haelfte - ein einzelner Ausreisser oder ein
+      Ausfall des Zaehlers loest nichts aus.
+    mode: single
+    max_exceeded: silent
+    triggers:
+      - trigger: state
+        entity_id: sensor.hg_pk32_pelletverbrauch
+    conditions:
+      - condition: template
+        value_template: >
+          {{ trigger.from_state is not none
+             and trigger.to_state is not none
+             and trigger.from_state.state | is_number
+             and trigger.to_state.state | is_number
+             and (trigger.from_state.state | float - trigger.to_state.state | float) >= 100
+             and trigger.to_state.state | float <= (trigger.from_state.state | float * 0.5) }}
+    actions:
+      - action: input_number.set_value
+        target:
+          entity_id: input_number.hg_pk32_pelletverbrauch_startwert
+        data:
+          value: "{{ trigger.to_state.state | float }}"
+      - action: input_datetime.set_datetime
+        target:
+          entity_id: input_datetime.hg_pk32_pelletverbrauch_startzeit
+        data:
+          date: "{{ now().strftime('%Y-%m-%d') }}"
+          time: "{{ now().strftime('%H:%M:%S') }}"
+      - action: logbook.log
+        data:
+          name: "Pelletverbrauch - Anker"
+          message: >
+            Zaehler-Reset erkannt ({{ trigger.from_state.state }} ->
+            {{ trigger.to_state.state }} kg). Anker neu gesetzt.
+          entity_id: sensor.hg_pk32_pelletverbrauch
+
+
+template:
+
+  - sensor:
+
+      ##########################################################################
+      # 1) Norm-HDD des laufenden Monats (VDI 4710 / DWD 1991-2020)
+      ##########################################################################
+      - name: "hdd_norm_monat"
+        unique_id: hdd_norm_monat
+        unit_of_measurement: "HDD"
+        state: >
+          {% set hdd = {
+            1: 496, 2: 413, 3: 341, 4: 232, 5: 118, 6: 34,
+            7: 17, 8: 27, 9: 86, 10: 215, 11: 370, 12: 449
+          } %}
+          {{ hdd[now().month] }}
+
+      ##########################################################################
+      # 2) Norm-HDD Jahr - Summe der Monatstabelle, nicht mehr hart 2798
+      ##########################################################################
+      - name: "hdd_norm_jahr"
+        unique_id: hdd_norm_jahr
+        unit_of_measurement: "HDD"
+        state: >
+          {% set hdd = {
+            1: 496, 2: 413, 3: 341, 4: 232, 5: 118, 6: 34,
+            7: 17, 8: 27, 9: 86, 10: 215, 11: 370, 12: 449
+          } %}
+          {{ hdd.values() | sum }}
+
+      ##########################################################################
+      # 3) Laenge des Messzeitraums in Tagen
+      ##########################################################################
+      - name: "pelletverbrauch_zeitraum_tage"
+        unique_id: pelletverbrauch_zeitraum_tage
+        unit_of_measurement: "d"
+        availability: >
+          {% set ts = state_attr('input_datetime.hg_pk32_pelletverbrauch_startzeit','timestamp') %}
+          {{ ts is not none and ts > 0 and now().timestamp() > ts }}
+        state: >
+          {% set ts = state_attr('input_datetime.hg_pk32_pelletverbrauch_startzeit','timestamp') %}
+          {{ ((now().timestamp() - ts) / 86400) | round(2) }}
+
+      ##########################################################################
+      # 4) Norm-HDD im Messzeitraum
+      #    Start- und Endmonat tagesgenau anteilig, Monate dazwischen voll.
+      ##########################################################################
+      - name: "hdd_norm_zeitraum"
+        unique_id: hdd_norm_zeitraum
+        unit_of_measurement: "HDD"
+        availability: >
+          {% set ts = state_attr('input_datetime.hg_pk32_pelletverbrauch_startzeit','timestamp') %}
+          {{ ts is not none and ts > 0 }}
+        state: >
+          {% set hdd = {
+            1: 496, 2: 413, 3: 341, 4: 232, 5: 118, 6: 34,
+            7: 17, 8: 27, 9: 86, 10: 215, 11: 370, 12: 449
+          } %}
+          {% set ts = state_attr('input_datetime.hg_pk32_pelletverbrauch_startzeit','timestamp') %}
+          {% set start = ts | as_datetime | as_local %}
+          {% set ende = now() %}
+          {% set ns = namespace(sum=0.0) %}
+          {% set start_em = start.year * 12 + start.month %}
+          {% set ende_em = ende.year * 12 + ende.month %}
+          {% macro tage(j, m) -%}
+            {{ 31 if m in [1,3,5,7,8,10,12] else (30 if m != 2 else (29 if (j % 4 == 0 and j % 100 != 0) or j % 400 == 0 else 28)) }}
+          {%- endmacro %}
+          {% if start_em == ende_em %}
+            {% set t = tage(start.year, start.month) | int %}
+            {% set ns.sum = hdd[start.month] * ((ende.day - start.day + 1) / t) %}
+          {% else %}
+            {% set t = tage(start.year, start.month) | int %}
+            {% set ns.sum = ns.sum + hdd[start.month] * ((t - start.day + 1) / t) %}
+            {% for offset in range(1, 130) %}
+              {% set em = start_em + offset %}
+              {% if em < ende_em %}
+                {% set ns.sum = ns.sum + hdd[((em - 1) % 12) + 1] %}
+              {% endif %}
+            {% endfor %}
+            {% set t = tage(ende.year, ende.month) | int %}
+            {% set ns.sum = ns.sum + hdd[ende.month] * (ende.day / t) %}
+          {% endif %}
+          {{ ns.sum | round(2) }}
+
+      ##########################################################################
+      # 5) Norm-HDD vom 01.01. bis heute
+      #    Ersetzt das frueher dauerhaft unavailable hdd_norm_bis_monat.
+      ##########################################################################
+      - name: "hdd_norm_bis_heute"
+        unique_id: hdd_norm_bis_heute
+        unit_of_measurement: "HDD"
+        state: >
+          {% set hdd = {
+            1: 496, 2: 413, 3: 341, 4: 232, 5: 118, 6: 34,
+            7: 17, 8: 27, 9: 86, 10: 215, 11: 370, 12: 449
+          } %}
+          {% set heute = now() %}
+          {% set ns = namespace(sum=0.0) %}
+          {% for m in range(1, heute.month) %}
+            {% set ns.sum = ns.sum + hdd[m] %}
+          {% endfor %}
+          {% set m = heute.month %}
+          {% set j = heute.year %}
+          {% set t = 31 if m in [1,3,5,7,8,10,12] else (30 if m != 2 else (29 if (j % 4 == 0 and j % 100 != 0) or j % 400 == 0 else 28)) %}
+          {{ (ns.sum + hdd[m] * (heute.day / t)) | round(2) }}
+
+      ##########################################################################
+      # 6) Verbrauch im Zeitraum, aufgeteilt in Grundlast und Heizanteil
+      ##########################################################################
+      - name: "pelletverbrauch_heizanteil"
+        unique_id: pelletverbrauch_heizanteil
+        unit_of_measurement: "kg"
+        availability: >
+          {{ states('sensor.hg_pk32_pelletverbrauch') | is_number
+             and states('input_number.hg_pk32_pelletverbrauch_startwert') | is_number
+             and states('input_number.pelletverbrauch_grundlast_warmwasser') | is_number
+             and states('sensor.pelletverbrauch_zeitraum_tage') | is_number }}
+        state: >
+          {% set verbrauch = states('sensor.hg_pk32_pelletverbrauch') | float
+                           - states('input_number.hg_pk32_pelletverbrauch_startwert') | float %}
+          {% set grundlast = states('input_number.pelletverbrauch_grundlast_warmwasser') | float
+                           * states('sensor.pelletverbrauch_zeitraum_tage') | float %}
+          {{ [verbrauch - grundlast, 0] | max | round(1) }}
+        attributes:
+          verbrauch_gesamt: >
+            {{ (states('sensor.hg_pk32_pelletverbrauch') | float
+                - states('input_number.hg_pk32_pelletverbrauch_startwert') | float) | round(1) }}
+          grundlast_anteil: >
+            {{ (states('input_number.pelletverbrauch_grundlast_warmwasser') | float
+                * states('sensor.pelletverbrauch_zeitraum_tage') | float) | round(1) }}
+
+      ##########################################################################
+      # 7) Effizienz - nur der wetterabhaengige Heizanteil
+      ##########################################################################
+      - name: "pellets_pro_hdd_norm"
+        unique_id: pellets_pro_hdd_norm
+        unit_of_measurement: "kg/HDD"
+        availability: >
+          {{ states('sensor.pelletverbrauch_heizanteil') | is_number
+             and states('sensor.hdd_norm_zeitraum') | is_number
+             and states('sensor.hdd_norm_zeitraum') | float > 0 }}
+        state: >
+          {{ (states('sensor.pelletverbrauch_heizanteil') | float
+              / states('sensor.hdd_norm_zeitraum') | float) | round(3) }}
+
+      ##########################################################################
+      # 8) Jahresprognose = Grundlast * Tage im Jahr + kg/HDD * Jahres-HDD
+      ##########################################################################
+      - name: "pelletverbrauch_prognose_jahr_hdd_norm"
+        unique_id: pelletverbrauch_prognose_jahr_hdd_norm
+        unit_of_measurement: "kg"
+        availability: >
+          {{ states('sensor.pellets_pro_hdd_norm') | is_number
+             and states('sensor.hdd_norm_jahr') | is_number
+             and states('input_number.pelletverbrauch_grundlast_warmwasser') | is_number }}
+        state: >
+          {% set j = now().year %}
+          {% set tage = 366 if (j % 4 == 0 and j % 100 != 0) or j % 400 == 0 else 365 %}
+          {{ (states('input_number.pelletverbrauch_grundlast_warmwasser') | float * tage
+              + states('sensor.pellets_pro_hdd_norm') | float
+                * states('sensor.hdd_norm_jahr') | float) | round(1) }}
+
+      ##########################################################################
+      # 9) Monatsprognose = Grundlast * Tage im Monat + kg/HDD * Monats-HDD
+      ##########################################################################
+      - name: "pelletverbrauch_prognose_monat_hdd_norm"
+        unique_id: pelletverbrauch_prognose_monat_hdd_norm
+        unit_of_measurement: "kg"
+        availability: >
+          {{ states('sensor.pellets_pro_hdd_norm') | is_number
+             and states('sensor.hdd_norm_monat') | is_number
+             and states('input_number.pelletverbrauch_grundlast_warmwasser') | is_number }}
+        state: >
+          {% set m = now().month %}
+          {% set j = now().year %}
+          {% set t = 31 if m in [1,3,5,7,8,10,12] else (30 if m != 2 else (29 if (j % 4 == 0 and j % 100 != 0) or j % 400 == 0 else 28)) %}
+          {{ (states('input_number.pelletverbrauch_grundlast_warmwasser') | float * t
+              + states('sensor.pellets_pro_hdd_norm') | float
+                * states('sensor.hdd_norm_monat') | float) | round(1) }}
+
+      ##########################################################################
+      # 10) Restjahr = Grundlast * Resttage + kg/HDD * (Jahres-HDD - HDD bis heute)
+      ##########################################################################
+      - name: "pelletverbrauch_restjahr_hdd_norm"
+        unique_id: pelletverbrauch_restjahr_hdd_norm
+        unit_of_measurement: "kg"
+        availability: >
+          {{ states('sensor.pellets_pro_hdd_norm') | is_number
+             and states('sensor.hdd_norm_jahr') | is_number
+             and states('sensor.hdd_norm_bis_heute') | is_number
+             and states('input_number.pelletverbrauch_grundlast_warmwasser') | is_number }}
+        state: >
+          {% set j = now().year %}
+          {% set tage_jahr = 366 if (j % 4 == 0 and j % 100 != 0) or j % 400 == 0 else 365 %}
+          {% set resttage = tage_jahr - now().timetuple().tm_yday %}
+          {% set hdd_rest = [states('sensor.hdd_norm_jahr') | float
+                             - states('sensor.hdd_norm_bis_heute') | float, 0] | max %}
+          {{ (states('input_number.pelletverbrauch_grundlast_warmwasser') | float * resttage
+              + states('sensor.pellets_pro_hdd_norm') | float * hdd_rest) | round(1) }}
