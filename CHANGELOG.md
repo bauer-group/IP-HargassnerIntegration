@@ -5,7 +5,50 @@ Alle wichtigen Änderungen an diesem Projekt werden in dieser Datei dokumentiert
 Das Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/),
 und dieses Projekt folgt [Semantic Versioning](https://semver.org/lang/de/).
 
+## [0.5.1] - 2026-09-12
+
+> **⚠️ Wer 0.5.0 installiert hat, sollte direkt auf 0.5.1 gehen.** 0.5.0 hat die
+> Definition von `V14_1HAR_q1` verändert, statt eine zweite daneben zu stellen.
+> Auf Anlagen, die dieses Template nutzen, sind dadurch Werte in andere Entitäten
+> gewandert — sichtbar vor allem an den Heizkreisen (`Vorlauf HK x` zeigte den
+> Raumfühler statt der Vorlauftemperatur).
+>
+> **Mit 0.5.1 ist `V14_1HAR_q1` wieder exakt das Template aus 0.4.0.** Es ist kein
+> Eingriff nötig: nach dem Update stehen die Werte wieder dort, wo sie vor 0.5.0
+> standen. Wer in 0.5.0 auf `V14_1HAR_q1_legacy` umgestellt hat, sollte in den
+> Optionen zurück auf `V14_1HAR_q1` wechseln — beide enthielten dieselbe
+> Kanaldefinition, der Hilfs-Key entfällt damit.
+
+### 🐛 Fixed
+
+- **`V14_1HAR_q1` auf die ursprüngliche Definition zurückgesetzt** ([Issue #21](https://github.com/bauer-group/IP-HargassnerIntegration/issues/21), [Issue #22](https://github.com/bauer-group/IP-HargassnerIntegration/issues/22))
+  - 0.5.0 hat `V14_1HAR_q1` an die Kanaldefinition aus `DAQ00001.DAQ` angepasst. Die Datei ist echt und weist sich als `SW=V14.1HAR.q1` aus — der Fehlschluss war, daraus abzuleiten, dass es *die* Definition für diese Firmware ist
+  - Eine HG-PK32 im Feld zeigt das Gegenteil: mit der **ursprünglichen** Reihenfolge liest sie plausible Heizkreiswerte (Vorlauf 32,1 °C, Raumfühler nicht bestückt → 0,0 °C), mit der Werksreihenfolge unplausible (Vorlauf 0,0 °C bei Soll 32,1 °C)
+  - Es gibt also **zwei Kanalreihenfolgen unter demselben Firmware-String**. Aus der Versionsangabe allein lässt sich nicht ableiten, welche eine Anlage verwendet
+  - Konsequenz für die Zukunft: eine bestehende Template-Definition wird nicht umgedeutet. Neue Erkenntnisse bekommen einen neuen Key. Ein Test fixiert die Reihenfolge von `V14_1HAR_q1` jetzt explizit, damit das nicht erneut passiert
+
+### ✨ Added
+
+- **`V14_1HAR_q1_nano2_32`** — die Kanalreihenfolge aus der Werksaufzeichnung
+  - 112 Analog-Kanäle + 8 Digital-Words = 120 Werte, Heizkreise als `TVL_x`, `TVLs_x`, `TRA_x`, `TRs_x`, `TB1` vor `TBs_1`, ohne `Reserved_5`/`Reserved_8`
+  - Kanalgleich mit dem `<DAQPRJ>`-Block aus `docs/private_firmware_samples/DAQ00001.DAQ` (Nano.2 32), inklusive Einheiten und `dop`-Attributen — per Test abgesichert
+  - Für wen: wenn die Heizkreiswerte mit `V14_1HAR_q1` unplausibel aussehen (Vorlauf ~0 °C bei sinnvollem Soll), ist dieses Template der nächste Versuch. Der Verbindungs-Sensor zeigt über `expected_length` und `last_message_length`, ob die Länge passt
+
+### 🔄 Changed
+
+- **`V14_1HAR_q1_legacy` entfernt** — der Key existierte nur in 0.5.0 als Rückweg auf die alte Zuordnung. Da `V14_1HAR_q1` diese Zuordnung wieder selbst enthält, ist er gegenstandslos. Wer ihn ausgewählt hatte, erhält über den Template-Fallback dieselbe Kanaldefinition, sollte aber in den Optionen auf `V14_1HAR_q1` zurückstellen
+
+### 🧪 Tests
+
+- `test_v14_1har_q1_keeps_its_original_layout` fixiert die Reihenfolge von `V14_1HAR_q1` (inklusive `Reserved_5`/`Reserved_8` und Länge 121), damit eine gut gemeinte „Korrektur" nicht erneut Werte verschiebt
+- `test_nano2_32_is_the_manufacturers_own_channel_list` prüft `V14_1HAR_q1_nano2_32` Kanal für Kanal gegen die Werksdatei
+- 152 Tests, unverändert grün
+
 ## [0.5.0] - 2026-09-12
+
+> **Hinweis:** Die hier beschriebene Umstellung von `V14_1HAR_q1` wurde in
+> 0.5.1 zurückgenommen — siehe oben. Der Eintrag bleibt unverändert stehen,
+> weil er beschreibt, was 0.5.0 tatsächlich ausgeliefert hat.
 
 > **⚠️ Upgrade-Hinweis:** Diese Version korrigiert das Standard-Template `V14_1HAR_q1`
 > gegen die Kanaldefinition des Herstellers. **Sensorwerte können nach dem Update
