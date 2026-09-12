@@ -3,11 +3,14 @@
 from __future__ import annotations
 
 import logging
+import re
+import xml.etree.ElementTree as ET
 
 import pytest
 
 from conftest import (
     FIRMWARE_TEMPLATES,
+    REPO_ROOT,
     HargassnerMessageParser,
     build_geometry,
 )
@@ -29,7 +32,8 @@ EXPECTED_LENGTHS = {
     "V14_0HAR_q": 120,
     "V14_0d": 171,
     "V14_0m5": 154,
-    "V14_1HAR_q1": 121,
+    "V14_1HAR_q1": 120,
+    "V14_1HAR_q1_legacy": 121,
     "V14_1HAR_q1_solar": 140,
     "V14_1HAR_q_nano2_zuspuf_aup3": 155,
     "V40_0HAR_az15": 157,
@@ -80,19 +84,8 @@ def test_real_capture_obeys_the_dop_formatting_rules():
     trims a trailing '.0' on those, so they carry no positional signal.
     """
     geometry = build_geometry(REAL_CAPTURE_FIRMWARE)
-    values = REAL_CAPTURE.split()[1:]
 
-    violations = []
-    for index in range(geometry.analog_count):
-        name, dop = geometry.analog[index]
-        token = values[index]
-        decimals = len(token.split(".")[1]) if "." in token else 0
-        if dop == "0" and decimals != 0:
-            violations.append(f"{name} (id {index}) dop='0' but {token!r}")
-        elif dop == "2" and decimals != 2:
-            violations.append(f"{name} (id {index}) dop='2' but {token!r}")
-
-    assert violations == []
+    assert dop_violations(geometry, REAL_CAPTURE) == []
 
 
 def test_real_capture_matches_manufacturer_signatures():
@@ -227,3 +220,78 @@ def test_last_message_length_is_reported(firmware_key, parser):
 
     assert parser.last_message_length == 30
     assert parser.expected_length == EXPECTED_LENGTHS[firmware_key]
+
+
+def dop_violations(geometry, message):
+    """Positions where a captured token contradicts its channel's dop attribute.
+
+    dop='0' never emits a decimal point and dop='2' always emits exactly two.
+    Channels with no dop attribute carry no positional signal - the boiler trims
+    a trailing '.0' on those - so they are not checked.
+    """
+    values = message.split()[1:]
+    found = []
+    for index in range(geometry.analog_count):
+        name, dop = geometry.analog[index]
+        token = values[index]
+        decimals = len(token.split(".")[1]) if "." in token else 0
+        if dop == "0" and decimals != 0:
+            found.append(f"{name} (id {index}) dop='0' but {token!r}")
+        elif dop == "2" and decimals != 2:
+            found.append(f"{name} (id {index}) dop='2' but {token!r}")
+    return found
+
+
+def manufacturer_daq_bytes():
+    """The manufacturer's own recording, shipped with the repository."""
+    return (REPO_ROOT / "docs" / "private_firmware_samples" / "DAQ00001.DAQ").read_bytes()
+
+
+def channel_signature(xml):
+    """(analog, digital) channel identity of a DAQPRJ, ignoring formatting."""
+    root = ET.fromstring(xml)
+    analog = [
+        (c.get("name"), c.get("unit"), c.get("dop"))
+        for c in sorted(root.findall(".//ANALOG/CHANNEL"), key=lambda c: int(c.get("id")))
+    ]
+    digital = {
+        (int(c.get("id")), int(c.get("bit", 0))): c.get("name")
+        for c in root.findall(".//DIGITAL/CHANNEL")
+    }
+    return analog, digital
+
+
+def test_v14_1har_q1_is_the_manufacturers_own_channel_list():
+    """The default template is the boiler maker's definition, not a reconstruction.
+
+    docs/private_firmware_samples/DAQ00001.DAQ is a recording from a Nano.2 32
+    that reports 'SW=V14.1HAR.q1' in its own header, so it settles the layout for
+    this firmware. Up to v0.4.0 the shipped template disagreed with it: TRA_x sat
+    ahead of TVL_x in all four heating circuits, TB1 and TBs_1 were swapped, and a
+    ninth digital word (Reserved_8) was declared that the firmware never sends -
+    putting expected_length at 121 instead of 120 (issues #21, #22).
+    """
+    raw = manufacturer_daq_bytes()
+    assert b"SW=V14.1HAR.q1" in raw, "sample no longer identifies itself as V14.1HAR.q1"
+
+    daqprj = re.search(rb"<DAQPRJ>.*?</DAQPRJ>", raw, re.S).group(0).decode("cp1252")
+
+    assert channel_signature(FIRMWARE_TEMPLATES["V14_1HAR_q1"]) == channel_signature(daqprj)
+    assert HargassnerMessageParser("V14_1HAR_q1").expected_length == 120
+
+
+def test_legacy_template_keeps_the_superseded_layout():
+    """V14_1HAR_q1_legacy exists to be wrong in exactly the old way.
+
+    It is the pre-0.5.0 V14_1HAR_q1, kept so an installation tuned around that
+    mapping can be restored deliberately. A well-meant tidy-up here would remove
+    the only migration path, so the defects are asserted rather than fixed.
+    """
+    analog, digital = channel_signature(FIRMWARE_TEMPLATES["V14_1HAR_q1_legacy"])
+    names = [name for name, _, _ in analog]
+
+    for circuit in ("A", "1", "2", "B"):
+        assert names.index(f"TRA_{circuit}") < names.index(f"TVL_{circuit}")
+    assert names.index("TBs_1") < names.index("TB1")
+    assert digital.get((8, 0)) == "Reserved_8"
+    assert HargassnerMessageParser("V14_1HAR_q1_legacy").expected_length == 121

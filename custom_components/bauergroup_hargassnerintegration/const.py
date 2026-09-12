@@ -392,7 +392,8 @@ ERROR_CODES: Final = {
 # 2. Add the version string here
 # 3. Run tools/parameter_validator.py to verify consistency
 FIRMWARE_VERSIONS: Final = [
-    "V14_1HAR_q1",
+    "V14_1HAR_q1",  # Nano.2, per the manufacturer DAQ for SW=V14.1HAR.q1
+    "V14_1HAR_q1_legacy",  # pre-0.5.0 V14_1HAR_q1 layout, migration only
     "V14_1HAR_q1_solar",  # Nano.2 20 + Solar/3HK extension (Issue #11)
     "V14_0HAR_q",
     "V14_0m5",  # Classic Lambda 40L-60L
