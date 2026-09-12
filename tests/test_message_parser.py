@@ -47,8 +47,8 @@ EXPECTED_LENGTHS = {
     "V14_0HAR_q": 120,
     "V14_0d": 171,
     "V14_0m5": 154,
-    "V14_1HAR_q1": 120,
-    "V14_1HAR_q1_legacy": 121,
+    "V14_1HAR_q1": 121,
+    "V14_1HAR_q1_nano2_32": 120,
     "V14_1HAR_q1_nanopkplus": 121,
     "V14_1HAR_q1_solar": 140,
     "V14_1HAR_q_nano2_zuspuf_aup3": 155,
@@ -277,40 +277,50 @@ def channel_signature(xml):
     return analog, digital
 
 
-def test_v14_1har_q1_is_the_manufacturers_own_channel_list():
-    """The default template is the boiler maker's definition, not a reconstruction.
+def test_nano2_32_is_the_manufacturers_own_channel_list():
+    """V14_1HAR_q1_nano2_32 is the boiler maker's channel list, verbatim.
 
     docs/private_firmware_samples/DAQ00001.DAQ is a recording from a Nano.2 32
-    that reports 'SW=V14.1HAR.q1' in its own header, so it settles the layout for
-    this firmware. Up to v0.4.0 the shipped template disagreed with it: TRA_x sat
-    ahead of TVL_x in all four heating circuits, TB1 and TBs_1 were swapped, and a
-    ninth digital word (Reserved_8) was declared that the firmware never sends -
-    putting expected_length at 121 instead of 120 (issues #21, #22).
+    whose header reports 'SW=V14.1HAR.q1'. It declares 112 analog + 8 digital
+    words = 120 values and orders each heating circuit TVL_x, TVLs_x, TRA_x, TRs_x.
+
+    That is NOT the order V14_1HAR_q1 uses, and both occur in the field under the
+    same firmware string - see test_v14_1har_q1_keeps_its_original_layout. This key
+    exists so the manufacturer's order is selectable without redefining the other.
     """
     raw = manufacturer_daq_bytes()
     assert b"SW=V14.1HAR.q1" in raw, "sample no longer identifies itself as V14.1HAR.q1"
 
     daqprj = re.search(rb"<DAQPRJ>.*?</DAQPRJ>", raw, re.S).group(0).decode("cp1252")
 
-    assert channel_signature(FIRMWARE_TEMPLATES["V14_1HAR_q1"]) == channel_signature(daqprj)
-    assert HargassnerMessageParser("V14_1HAR_q1").expected_length == 120
+    assert (channel_signature(FIRMWARE_TEMPLATES["V14_1HAR_q1_nano2_32"])
+            == channel_signature(daqprj))
+    assert HargassnerMessageParser("V14_1HAR_q1_nano2_32").expected_length == 120
 
 
-def test_legacy_template_keeps_the_superseded_layout():
-    """V14_1HAR_q1_legacy exists to be wrong in exactly the old way.
+def test_v14_1har_q1_keeps_its_original_layout():
+    """V14_1HAR_q1 must keep the layout it has had since the first release.
 
-    It is the pre-0.5.0 V14_1HAR_q1, kept so an installation tuned around that
-    mapping can be restored deliberately. A well-meant tidy-up here would remove
-    the only migration path, so the defects are asserted rather than fixed.
+    It differs from the manufacturer's DAQ (TRA_x ahead of TVL_x, TBs_1 before
+    TB1, a ninth digital word Reserved_8), and for a while that looked simply
+    wrong. It is not: an HG-PK32 in the field reads plausible heating-circuit
+    values with THIS order and implausible ones with the manufacturer's, so both
+    orders exist under one firmware string. The manufacturer's order lives in
+    V14_1HAR_q1_nano2_32.
+
+    Redefining this key moves values between entities on every installation
+    already using it - which is what v0.5.0 did and v0.5.1 reverted. The layout
+    is pinned here deliberately: if it ever needs to change, it gets a new key.
     """
-    analog, digital = channel_signature(FIRMWARE_TEMPLATES["V14_1HAR_q1_legacy"])
+    analog, digital = channel_signature(FIRMWARE_TEMPLATES["V14_1HAR_q1"])
     names = [name for name, _, _ in analog]
 
     for circuit in ("A", "1", "2", "B"):
         assert names.index(f"TRA_{circuit}") < names.index(f"TVL_{circuit}")
     assert names.index("TBs_1") < names.index("TB1")
     assert digital.get((8, 0)) == "Reserved_8"
-    assert HargassnerMessageParser("V14_1HAR_q1_legacy").expected_length == 121
+    assert digital.get((5, 0)) == "Reserved_5"
+    assert HargassnerMessageParser("V14_1HAR_q1").expected_length == 121
 
 
 def test_nanopkplus_capture_parses_completely():
