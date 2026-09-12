@@ -5,6 +5,54 @@ Alle wichtigen Änderungen an diesem Projekt werden in dieser Datei dokumentiert
 Das Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/),
 und dieses Projekt folgt [Semantic Versioning](https://semver.org/lang/de/).
 
+## [Unreleased]
+
+> **⚠️ Upgrade-Hinweis:** Diese Version korrigiert das Standard-Template `V14_1HAR_q1`
+> gegen die Kanaldefinition des Herstellers. **Sensorwerte können nach dem Update
+> die Entität wechseln** — betroffen sind die Raumtemperaturen der vier Heizkreise
+> (`TRA_A`, `TRA_1`, `TRA_2`, `TRA_B`) sowie `TB1`/`TBs_1`. Zwei Binärsensoren
+> (`Reserved_5`, `Reserved_8`) verschwinden, weil es sie nie gegeben hat.
+> Das ist beabsichtigt — die bisherigen Zuordnungen waren falsch.
+>
+> Wer die alte Zuordnung bewusst behalten will, kann in den Optionen auf
+> `V14_1HAR_q1_legacy` umstellen. Alle übrigen Templates sind unverändert.
+
+### ✨ Added
+
+- **Firmware-Unterstützung für Nano PK Plus auf V14.1HAR.q (`V14_1HAR_q1_nanopkplus`)** ([Issue #21](https://github.com/bauer-group/IP-HargassnerIntegration/issues/21))
+  - Community-Beitrag von [@josefstr](https://github.com/josefstr) via 15-zeiligem Telnet-Mitschnitt
+  - 113 Analog-Parameter + 8 Digital-Words = 121 Werte
+  - Die Anlage sendet die Werkskanalliste **ohne** `BLDC_ES ist`/`BLDC_ES soll`, **mit** `Programm HKM1` und `BoiZustand_1`, und **ohne** Heizkreise 3/4 sowie den zweiten Boiler
+  - Der Aufbau ist aus dem Mitschnitt eindeutig bestimmt: über eine Subsequenz-Zuordnung gegen die Werkskanalliste ist er die einzige Anordnung, die die `dop`-Regeln in allen 15 Zeilen einhält — 0 Verstösse, gegenüber 300 beim bisherigen `V14_1HAR_q1`
+  - Heizkreise A und B sowie Boiler A und B lesen exakt die Werkssignatur für nicht installierte Komponenten
+
+- **`V14_1HAR_q1_legacy`** — die bis 0.4.0 ausgelieferte Anordnung von `V14_1HAR_q1`
+  - Ausschliesslich als Migrationspfad gedacht: wer seine Dashboards um die alte (falsche) Zuordnung herum gebaut hat, kann bewusst darauf zurückstellen statt es unbemerkt zu verlieren
+
+### 🐛 Fixed
+
+- **`V14_1HAR_q1` widersprach der Kanaldefinition des Herstellers an sechs Stellen** ([Issue #21](https://github.com/bauer-group/IP-HargassnerIntegration/issues/21), [Issue #22](https://github.com/bauer-group/IP-HargassnerIntegration/issues/22))
+  - `docs/private_firmware_samples/DAQ00001.DAQ` ist ein Mitschnitt einer Nano.2 32, der sich im eigenen Header als `SW=V14.1HAR.q1` ausweist — also genau die Firmware, die dieses Template beschreibt. Er deklariert **112 Analog-Kanäle + 8 Digital-Words = 120 Werte**
+  - Das ausgelieferte Template deklarierte **121** Werte und wich in der Reihenfolge ab:
+
+    | Defekt | bisher | Werksdefinition |
+    |---|---|---|
+    | `TRA_A`, `TRA_1`, `TRA_2`, `TRA_B` | vor `TVL_x` | nach `TVLs_x` (3. Position im Block) |
+    | `TB1` / `TBs_1` | vertauscht | `TB1` vor `TBs_1` |
+    | `Reserved_8` | 9. Digital-Word deklariert | existiert nicht — 8 Words |
+    | `Reserved_5` | Kanal deklariert | existiert nicht |
+
+  - Folge der Reihenfolge-Fehler: die Raumtemperatur jedes Heizkreises lag in der Vorlauf-Entität und umgekehrt
+  - Folge von `Reserved_8`: die erwartete Nachrichtenlänge war um 1 zu hoch. Bei Anlagen, die 121 Werte senden, wurde der letzte **Analog**-Wert als erstes Digital-Word gelesen — im Mitschnitt aus #21 ist das `0.00`, was nicht einmal gültiges Hexadezimal ist, worauf alle 15 Kanäle dieses Words ausfielen (`at index 112: invalid literal for int(): '0.00'`)
+  - Der Längenabgleich schlug hier nicht an: 121 erwartet, 121 gesendet — nur die Aufteilung war falsch
+  - Beide Regressionen sind jetzt getestet: `V14_1HAR_q1` wird Kanal für Kanal gegen die DAQ-Datei des Herstellers geprüft, `V14_1HAR_q1_legacy` gegen die alten Defekte
+  - Die beiden Templates, die aus echten DAQ-Dateien entstanden sind (`V14_1HAR_q1_solar`, `V14_1HAR_q_nano2_zuspuf_aup3`), waren nie betroffen — der Fehler lag nur im handgebauten Standard-Template
+  - ⚠️ **Verhaltensänderung** — siehe Upgrade-Hinweis oben
+
+### 🧪 Tests
+
+- Sechs neue Regressionstests (152 statt 118): Werks-DAQ-Abgleich für `V14_1HAR_q1`, Defekt-Fixierung für `V14_1HAR_q1_legacy`, sowie Längen-, `dop`-, Signatur- und Digital-Bit-Prüfungen für `V14_1HAR_q1_nanopkplus` gegen den Mitschnitt aus #21
+
 ## [0.4.0] - 2026-08-23
 
 > **⚠️ Upgrade-Hinweis:** Diese Version korrigiert, wie die digitalen Kesselwerte dekodiert werden.
