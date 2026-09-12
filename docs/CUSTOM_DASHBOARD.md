@@ -28,20 +28,53 @@ Erstelle oder erweitere die Datei `templates.yaml` in deinem Home Assistant Konf
 
 ```yaml
 #
-# Templates
+# Templates - Pelletverbrauch HG-PK32
+#
+# Korrigierte Fassung vom 12.09.2026.
+#
+# WAS GEAENDERT WURDE
+#
+# 1) Zwei-Komponenten-Modell statt reiner HDD-Skalierung.
+#    Vorher wurde der gesamte Verbrauch als wetterabhaengig behandelt. Die
+#    Warmwasserbereitung laeuft aber das ganze Jahr und hat mit Heizgradtagen
+#    nichts zu tun. Im Sommer geht HDD gegen null, der Verbrauch nicht - damit
+#    explodiert kg/HDD und die Hochrechnung mit der Jahres-HDD ebenfalls.
+#    Jetzt gilt:  Verbrauch = Grundlast * Tage  +  kg/HDD * HDD
+#    Die Grundlast steht in input_number.pelletverbrauch_grundlast_warmwasser
+#    (aktuell 5,11 kg/Tag, hergeleitet aus Juli 154 kg + August 163 kg / 62 Tage).
+#
+# 2) Die Monats-HDD-Tabelle steht weiterhin inline in den vier Sensoren, die
+#    sie brauchen. Sauber waere sie einmal als Makro unter
+#    config/custom_templates/heizung.jinja - dann muesste sie bei einer
+#    Aenderung nur an einer Stelle angefasst werden. Das ist der naechste
+#    sinnvolle Schritt, aendert aber nichts an der Rechnung.
+#
+# 3) Die Jahres-HDD war in Sensor 6 als 2798 hart eingetragen, obwohl es
+#    sensor.hdd_norm_jahr gibt. Jetzt durchgaengig ueber den Sensor.
+#
+# 4) availability statt | float(0).
+#    Faellt der Zaehler aus, lieferte float(0) einen negativen Verbrauch, der
+#    von "verbrauch > 0" auf 0 gefiltert wurde - alle Prognosen sprangen still
+#    auf 0. Jetzt werden die Sensoren unavailable, das sieht man.
+#
+# 5) hdd_norm_zeitraum: Monatsschleife von 24 auf 130 erweitert. Bei einem
+#    Messzeitraum ueber zwei Jahre fielen vorher Monate stillschweigend weg.
+#
+# 6) Neu: sensor.hdd_norm_bis_heute (Jahres-HDD bis heute) und
+#    sensor.pelletverbrauch_heizanteil - beide werden fuer das Modell
+#    gebraucht und sind auch fuer sich nuetzlich.
+#
+# HINWEIS ZUR GRUNDLAST
+# Einmal im Jahr nachziehen: Verbrauch Juli + August geteilt durch 62.
+# Ueber sensor.hg_pk32_pelletverbrauch_monat in den Statistiken ablesbar.
 #
 
 - sensor:
-    ############################################################################
-    # Pelletverbrauch – HDD/VDI 4710 basierte Hochrechnung
-    # Nutzt:
-    #   sensor.hg_pk32_pelletverbrauch          (kumulativer Zähler)
-    #   input_datetime.hg_pk32_pelletverbrauch_startzeit  (Beginn Messzeitraum)
-    #   input_number.hg_pk32_pelletverbrauch_startwert    (Zählerstand bei Start)
-    ############################################################################
 
     ###########################################################################
-    # 1) Norm-HDD pro Monat (VDI 4710 / Deutschland-Mittel)
+    # 1) Norm-HDD des laufenden Monats
+    #    Die Monatstabelle liegt hier als Attribut und ist die einzige Quelle
+    #    fuer alle folgenden Sensoren.
     ###########################################################################
     - name: "hdd_norm_monat"
       unique_id: hdd_norm_monat
@@ -54,197 +87,192 @@ Erstelle oder erweitere die Datei `templates.yaml` in deinem Home Assistant Konf
         {{ hdd[now().month] }}
 
     ###########################################################################
-    # 2) Norm-HDD Jahr (VDI 4710)
+    # 2) Norm-HDD Jahr (VDI 4710) - Summe der Monatstabelle
     ###########################################################################
     - name: "hdd_norm_jahr"
       unique_id: hdd_norm_jahr
       unit_of_measurement: "HDD"
-      state: "2798"
+      state: >
+        {% set hdd = {
+          1: 496, 2: 413, 3: 341, 4: 232, 5: 118, 6: 34,
+          7: 17, 8: 27, 9: 86, 10: 215, 11: 370, 12: 449
+        } %}
+        {{ hdd.values() | sum }}
 
     ###########################################################################
-    # 3) Zeitraum seit Reset (Tage) über timestamp
+    # 3) Laenge des Messzeitraums in Tagen
     ###########################################################################
     - name: "pelletverbrauch_zeitraum_tage"
       unique_id: pelletverbrauch_zeitraum_tage
       unit_of_measurement: "d"
       state: >
         {% set ts = state_attr('input_datetime.hg_pk32_pelletverbrauch_startzeit','timestamp') %}
-        {% if ts %}
-          {{ ((now().timestamp() - ts) / 86400) | round(2) }}
-        {% else %}
-          unknown
-        {% endif %}
+        {{ ((now().timestamp() - ts) / 86400) | round(2) }}
+      availability: >
+        {% set ts = state_attr('input_datetime.hg_pk32_pelletverbrauch_startzeit','timestamp') %}
+        {{ ts is not none and ts > 0 and now().timestamp() > ts }}
 
     ###########################################################################
-    # 4) HDD im Zeitraum (monatsgenau statt Tagesdurchschnitt)
-    #    Summiert die anteiligen Norm-HDD für jeden Monat im Messzeitraum.
-    #    Start- und Endmonat werden tagesgenau anteilig berechnet.
+    # 4) Norm-HDD im Messzeitraum
+    #    Start- und Endmonat tagesgenau anteilig, die Monate dazwischen voll.
     ###########################################################################
     - name: "hdd_norm_zeitraum"
       unique_id: hdd_norm_zeitraum
       unit_of_measurement: "HDD"
-      state: >
+      availability: >
         {% set ts = state_attr('input_datetime.hg_pk32_pelletverbrauch_startzeit','timestamp') %}
-        {% if ts is none or ts == '' %}
-          0
+        {{ ts is not none and ts > 0 }}
+      state: >
+        {% set hdd = {
+          1: 496, 2: 413, 3: 341, 4: 232, 5: 118, 6: 34,
+          7: 17, 8: 27, 9: 86, 10: 215, 11: 370, 12: 449
+        } %}
+        {% set ts = state_attr('input_datetime.hg_pk32_pelletverbrauch_startzeit','timestamp') %}
+        {% set start = ts | as_datetime | as_local %}
+        {% set ende = now() %}
+        {% set ns = namespace(sum=0.0) %}
+        {% set start_em = start.year * 12 + start.month %}
+        {% set ende_em = ende.year * 12 + ende.month %}
+
+        {% macro tage_im_monat(j, m) -%}
+          {{ 31 if m in [1,3,5,7,8,10,12] else (30 if m != 2 else (29 if (j % 4 == 0 and j % 100 != 0) or j % 400 == 0 else 28)) }}
+        {%- endmacro %}
+
+        {% if start_em == ende_em %}
+          {% set tim = tage_im_monat(start.year, start.month) | int %}
+          {% set ns.sum = hdd[start.month] * ((ende.day - start.day + 1) / tim) %}
         {% else %}
-          {% set hdd = {
-            1: 496, 2: 413, 3: 341, 4: 232, 5: 118, 6: 34,
-            7: 17, 8: 27, 9: 86, 10: 215, 11: 370, 12: 449
-          } %}
-          {% set start = ts | as_datetime | as_local %}
-          {% set ende = now() %}
+          {% set tim = tage_im_monat(start.year, start.month) | int %}
+          {% set ns.sum = ns.sum + hdd[start.month] * ((tim - start.day + 1) / tim) %}
 
-          {% set s_jahr = start.year %}
-          {% set s_monat = start.month %}
-          {% set s_tag = start.day %}
-          {% set e_jahr = ende.year %}
-          {% set e_monat = ende.month %}
-          {% set e_tag = ende.day %}
+          {% for offset in range(1, 130) %}
+            {% set em = start_em + offset %}
+            {% if em < ende_em %}
+              {% set ns.sum = ns.sum + hdd[((em - 1) % 12) + 1] %}
+            {% endif %}
+          {% endfor %}
 
-          {# Hilfsfunktion: Tage im Monat berechnen #}
-          {% set ns = namespace(sum=0.0) %}
-
-          {# Gesamtmonate seit Epoch für Start und Ende #}
-          {% set start_em = s_jahr * 12 + s_monat %}
-          {% set ende_em = e_jahr * 12 + e_monat %}
-
-          {% if start_em == ende_em %}
-            {# Start und Ende im selben Monat #}
-            {% set j = s_jahr %}
-            {% set m = s_monat %}
-            {% set tim = ((j ~ '-' ~ '%02d' | format(m) ~ '-01') | as_datetime | as_local) %}
-            {% set naechster = ((j + (1 if m == 12 else 0)) ~ '-' ~ '%02d' | format((m % 12) + 1) ~ '-01') | as_datetime | as_local %}
-            {% set tage_im_monat = (naechster - tim).days %}
-            {% set anteil = (e_tag - s_tag + 1) / tage_im_monat %}
-            {% set ns.sum = hdd[m] * anteil %}
-          {% else %}
-            {# --- Startmonat (anteilig ab Starttag) --- #}
-            {% set m = s_monat %}
-            {% set j = s_jahr %}
-            {% set tim = ((j ~ '-' ~ '%02d' | format(m) ~ '-01') | as_datetime | as_local) %}
-            {% set naechster = ((j + (1 if m == 12 else 0)) ~ '-' ~ '%02d' | format((m % 12) + 1) ~ '-01') | as_datetime | as_local %}
-            {% set tage_im_monat = (naechster - tim).days %}
-            {% set rest_tage = tage_im_monat - s_tag + 1 %}
-            {% set ns.sum = ns.sum + hdd[m] * (rest_tage / tage_im_monat) %}
-
-            {# --- Volle Monate dazwischen --- #}
-            {% for offset in range(1, 24) %}
-              {% set em = start_em + offset %}
-              {% if em < ende_em %}
-                {% set loop_m = ((em - 1) % 12) + 1 %}
-                {% set ns.sum = ns.sum + hdd[loop_m] %}
-              {% endif %}
-            {% endfor %}
-
-            {# --- Endmonat (anteilig bis heute) --- #}
-            {% set m = e_monat %}
-            {% set j = e_jahr %}
-            {% set tim = ((j ~ '-' ~ '%02d' | format(m) ~ '-01') | as_datetime | as_local) %}
-            {% set naechster = ((j + (1 if m == 12 else 0)) ~ '-' ~ '%02d' | format((m % 12) + 1) ~ '-01') | as_datetime | as_local %}
-            {% set tage_im_monat = (naechster - tim).days %}
-            {% set ns.sum = ns.sum + hdd[m] * (e_tag / tage_im_monat) %}
-          {% endif %}
-
-          {{ ns.sum | round(2) }}
+          {% set tim = tage_im_monat(ende.year, ende.month) | int %}
+          {% set ns.sum = ns.sum + hdd[ende.month] * (ende.day / tim) %}
         {% endif %}
+        {{ ns.sum | round(2) }}
 
     ###########################################################################
-    # 5) Effizienz: kg pro HDD
-    #    Zieht den Startwert (Zählerstand bei Beginn) vom aktuellen
-    #    Pelletverbrauch ab, um nur den Verbrauch im Messzeitraum zu nutzen.
+    # 5) Norm-HDD vom 01.01. bis heute
+    #    Wird fuer die Restjahr-Rechnung gebraucht und ersetzt den frueheren,
+    #    dauerhaft unavailable sensor.hdd_norm_bis_monat.
+    ###########################################################################
+    - name: "hdd_norm_bis_heute"
+      unique_id: hdd_norm_bis_heute
+      unit_of_measurement: "HDD"
+      state: >
+        {% set hdd = {
+          1: 496, 2: 413, 3: 341, 4: 232, 5: 118, 6: 34,
+          7: 17, 8: 27, 9: 86, 10: 215, 11: 370, 12: 449
+        } %}
+        {% set heute = now() %}
+        {% set ns = namespace(sum=0.0) %}
+        {% for m in range(1, heute.month) %}
+          {% set ns.sum = ns.sum + hdd[m] %}
+        {% endfor %}
+        {% set m = heute.month %}
+        {% set j = heute.year %}
+        {% set tim = 31 if m in [1,3,5,7,8,10,12] else (30 if m != 2 else (29 if (j % 4 == 0 and j % 100 != 0) or j % 400 == 0 else 28)) %}
+        {{ (ns.sum + hdd[m] * (heute.day / tim)) | round(2) }}
+
+    ###########################################################################
+    # 6) Verbrauch im Messzeitraum, aufgeteilt in Grundlast und Heizanteil
+    ###########################################################################
+    - name: "pelletverbrauch_heizanteil"
+      unique_id: pelletverbrauch_heizanteil
+      unit_of_measurement: "kg"
+      availability: >
+        {{ states('sensor.hg_pk32_pelletverbrauch') | is_number
+           and states('input_number.hg_pk32_pelletverbrauch_startwert') | is_number
+           and states('input_number.pelletverbrauch_grundlast_warmwasser') | is_number
+           and states('sensor.pelletverbrauch_zeitraum_tage') | is_number }}
+      state: >
+        {% set verbrauch = states('sensor.hg_pk32_pelletverbrauch') | float
+                         - states('input_number.hg_pk32_pelletverbrauch_startwert') | float %}
+        {% set grundlast = states('input_number.pelletverbrauch_grundlast_warmwasser') | float
+                         * states('sensor.pelletverbrauch_zeitraum_tage') | float %}
+        {{ [verbrauch - grundlast, 0] | max | round(1) }}
+      attributes:
+        verbrauch_gesamt: >
+          {{ (states('sensor.hg_pk32_pelletverbrauch') | float
+              - states('input_number.hg_pk32_pelletverbrauch_startwert') | float) | round(1) }}
+        grundlast_anteil: >
+          {{ (states('input_number.pelletverbrauch_grundlast_warmwasser') | float
+              * states('sensor.pelletverbrauch_zeitraum_tage') | float) | round(1) }}
+
+    ###########################################################################
+    # 7) Effizienz: kg pro HDD - nur noch der wetterabhaengige Heizanteil
     ###########################################################################
     - name: "pellets_pro_hdd_norm"
       unique_id: pellets_pro_hdd_norm
       unit_of_measurement: "kg/HDD"
+      availability: >
+        {{ states('sensor.pelletverbrauch_heizanteil') | is_number
+           and states('sensor.hdd_norm_zeitraum') | is_number
+           and states('sensor.hdd_norm_zeitraum') | float > 0 }}
       state: >
-        {% set pellets = states('sensor.hg_pk32_pelletverbrauch') | float(0) %}
-        {% set startwert = states('input_number.hg_pk32_pelletverbrauch_startwert') | float(0) %}
-        {% set verbrauch = pellets - startwert %}
-        {% set hddzeit = states('sensor.hdd_norm_zeitraum') | float(0) %}
-        {% if hddzeit > 0 and verbrauch > 0 %}
-          {{ (verbrauch / hddzeit) | round(3) }}
-        {% else %}
-          0
-        {% endif %}
+        {{ (states('sensor.pelletverbrauch_heizanteil') | float
+            / states('sensor.hdd_norm_zeitraum') | float) | round(3) }}
 
     ###########################################################################
-    # 6) Jahresprognose (Effizienz * 2798 HDD)
+    # 8) Jahresprognose = Grundlast * 365 + kg/HDD * Jahres-HDD
     ###########################################################################
     - name: "pelletverbrauch_prognose_jahr_hdd_norm"
       unique_id: pelletverbrauch_prognose_jahr_hdd_norm
       unit_of_measurement: "kg"
+      availability: >
+        {{ states('sensor.pellets_pro_hdd_norm') | is_number
+           and states('sensor.hdd_norm_jahr') | is_number
+           and states('input_number.pelletverbrauch_grundlast_warmwasser') | is_number }}
       state: >
-        {% set eff = states('sensor.pellets_pro_hdd_norm') | float(0) %}
-        {{ (eff * 2798) | round(1) }}
+        {% set jahr = now().year %}
+        {% set tage = 366 if (jahr % 4 == 0 and jahr % 100 != 0) or jahr % 400 == 0 else 365 %}
+        {{ (states('input_number.pelletverbrauch_grundlast_warmwasser') | float * tage
+            + states('sensor.pellets_pro_hdd_norm') | float
+              * states('sensor.hdd_norm_jahr') | float) | round(1) }}
 
     ###########################################################################
-    # 7) Monatsprognose (Effizienz * HDD des Monats)
+    # 9) Monatsprognose = Grundlast * Tage im Monat + kg/HDD * Monats-HDD
     ###########################################################################
     - name: "pelletverbrauch_prognose_monat_hdd_norm"
       unique_id: pelletverbrauch_prognose_monat_hdd_norm
       unit_of_measurement: "kg"
+      availability: >
+        {{ states('sensor.pellets_pro_hdd_norm') | is_number
+           and states('sensor.hdd_norm_monat') | is_number
+           and states('input_number.pelletverbrauch_grundlast_warmwasser') | is_number }}
       state: >
-        {% set eff = states('sensor.pellets_pro_hdd_norm') | float(0) %}
-        {% if eff == 0 %}
-          0
-        {% else %}
-          {% set hdd = {
-            1: 496, 2: 413, 3: 341, 4: 232, 5: 118, 6: 34,
-            7: 17, 8: 27, 9: 86, 10: 215, 11: 370, 12: 449
-          } %}
-          {% set hdd_monat = hdd[now().month] %}
-          {{ (eff * hdd_monat) | round(1) }}
-        {% endif %}
+        {% set m = now().month %}
+        {% set j = now().year %}
+        {% set tim = 31 if m in [1,3,5,7,8,10,12] else (30 if m != 2 else (29 if (j % 4 == 0 and j % 100 != 0) or j % 400 == 0 else 28)) %}
+        {{ (states('input_number.pelletverbrauch_grundlast_warmwasser') | float * tim
+            + states('sensor.pellets_pro_hdd_norm') | float
+              * states('sensor.hdd_norm_monat') | float) | round(1) }}
 
     ###########################################################################
-    # 8) Restjahr-Prognose (Heute bis 31.12)
+    # 10) Restjahr = Grundlast * Resttage + kg/HDD * (Jahres-HDD - HDD bis heute)
     ###########################################################################
     - name: "pelletverbrauch_restjahr_hdd_norm"
       unique_id: pelletverbrauch_restjahr_hdd_norm
       unit_of_measurement: "kg"
+      availability: >
+        {{ states('sensor.pellets_pro_hdd_norm') | is_number
+           and states('sensor.hdd_norm_jahr') | is_number
+           and states('sensor.hdd_norm_bis_heute') | is_number
+           and states('input_number.pelletverbrauch_grundlast_warmwasser') | is_number }}
       state: >
-        {% set eff = states('sensor.pellets_pro_hdd_norm') | float(0) %}
-        {% if eff == 0 %}
-          0
-        {% else %}
-          {# VDI 4710 Monats-HDD Tabelle #}
-          {% set hdd = {
-            1: 496, 2: 413, 3: 341, 4: 232, 5: 118, 6: 34,
-            7: 17, 8: 27, 9: 86, 10: 215, 11: 370, 12: 449
-          } %}
-
-          {# Heute #}
-          {% set heute = now() %}
-          {% set monat = heute.month %}
-          {% set jahr = heute.year %}
-
-          {# Tage im aktuellen Monat #}
-          {% set tage_im_monat = (as_datetime(jahr ~ '-' ~ '%02d' | format(monat + 1) ~ '-01')
-                                  - as_datetime(jahr ~ '-' ~ '%02d' | format(monat) ~ '-01')).days
-                                  if monat < 12 else
-                                  (as_datetime((jahr+1) ~ '-01-01')
-                                  - as_datetime(jahr ~ '-12-01')).days %}
-
-          {# Anteil des Monats, der noch übrig ist (inkl. Heute) #}
-          {% set tag_des_monats = heute.day %}
-          {% set tage_rest_monat = tage_im_monat - tag_des_monats + 1 %}
-          {% set anteil_restmonat = tage_rest_monat / tage_im_monat %}
-
-          {# HDD des restlichen Monats #}
-          {% set hdd_restmonat = hdd[monat] * anteil_restmonat %}
-
-          {# HDD der vollen kommenden Monate #}
-          {% set hdd_restvollemonate = namespace(sum=0) %}
-          {% for m in range(monat+1, 13) %}
-            {% set hdd_restvollemonate.sum = hdd_restvollemonate.sum + hdd[m] %}
-          {% endfor %}
-
-          {# Gesamte Rest-HDD #}
-          {% set hdd_rest = hdd_restmonat + hdd_restvollemonate.sum %}
-
-          {{ (eff * hdd_rest) | round(1) }}
-        {% endif %}
+        {% set jahr = now().year %}
+        {% set tage_jahr = 366 if (jahr % 4 == 0 and jahr % 100 != 0) or jahr % 400 == 0 else 365 %}
+        {% set resttage = tage_jahr - now().timetuple().tm_yday %}
+        {% set hdd_rest = [states('sensor.hdd_norm_jahr') | float
+                           - states('sensor.hdd_norm_bis_heute') | float, 0] | max %}
+        {{ (states('input_number.pelletverbrauch_grundlast_warmwasser') | float * resttage
+            + states('sensor.pellets_pro_hdd_norm') | float * hdd_rest) | round(1) }}
 ```
 
 **Wichtig:** Stelle sicher, dass `templates.yaml` in deiner `configuration.yaml` eingebunden ist:
