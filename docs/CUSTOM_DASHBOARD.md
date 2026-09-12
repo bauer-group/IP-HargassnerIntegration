@@ -1,6 +1,6 @@
 # Custom Dashboard für Hargassner Pelletheizung
 
-Diese Anleitung zeigt dir, wie du ein umfassendes Dashboard für deine Hargassner Pelletheizung einrichtest, inklusive Verbrauchsprognosen basierend auf Heizgradtagen (HDD) nach VDI 4710.
+Diese Anleitung zeigt dir, wie du ein umfassendes Dashboard für deine Hargassner Pelletheizung einrichtest, inklusive Verbrauchsprognosen auf Basis von Heizgradtagen (HDD) nach VDI 4710.
 
 ![Custom Dashboard](images/Custom_Dashboard.png)
 
@@ -10,71 +10,190 @@ Das Dashboard bietet folgende Funktionen:
 
 - **Pelletheizung (Übersicht)**: Alle wichtigen Sensoren auf einen Blick
 - **Pelletheizung (Statistiken)**: Grafische Darstellung von Betriebszustand, Effizienz, Temperaturen und Pufferspeicher
-- **Pelletverbrauch – Kennzahlen**: Tages-, Wochen-, Monats- und Jahresverbrauch sowie intelligente Prognosen
+- **Pelletverbrauch – Kennzahlen**: Tages-, Wochen-, Monats- und Jahresverbrauch sowie Prognosen
 - **Pelletheizung (Alle Sensordaten)**: Komplette Übersicht aller verfügbaren Sensoren
+
+## So rechnet die Prognose
+
+Der Kessel verbraucht Pellets aus zwei Gründen, und die beiden verhalten sich völlig unterschiedlich:
+
+| Anteil | Wovon abhängig | Größenordnung |
+| --- | --- | --- |
+| **Warmwasser** | vom Wetter unabhängig, läuft das ganze Jahr | konstante kg pro Tag |
+| **Heizung** | direkt von der Außentemperatur | kg pro Heizgradtag |
+
+Deshalb rechnet das Modell zweigeteilt:
+
+```
+Verbrauch  =  Grundlast × Tage  +  kg/HDD × Heizgradtage
+```
+
+Würde man stattdessen den gesamten Verbrauch als wetterabhängig behandeln — also einfach `Verbrauch ÷ HDD` — bekäme man im Sommer eine absurde Kennzahl: die Heizgradtage gehen im Juli gegen null, der Warmwasserverbrauch nicht. Aus 46 kg/HDD statt 1,3 kg/HDD wird bei der Hochrechnung auf ein volles Jahr schnell ein zwanzigfach zu hoher Wert. Die Aufteilung in Grundlast und Heizanteil ist also kein Feinschliff, sondern die Voraussetzung dafür, dass die Prognose ganzjährig brauchbar bleibt.
+
+Die Grundlast steht in einem eigenen Helper und wird einmal jährlich aus den Sommermonaten nachgezogen — siehe [Schritt 2](#schritt-2-helper-erstellen).
 
 ## Voraussetzungen
 
 - Home Assistant mit der Hargassner Integration installiert
-- [ApexCharts Card](https://github.com/RomRider/apexcharts-card) für erweiterte Diagramme (optional, für die 30-Tage-Übersicht)
+- `sensor.hg_pk32_pelletverbrauch` liefert Werte und hat `state_class: total_increasing` (Voraussetzung für die Utility Meters)
+- [ApexCharts Card](https://github.com/RomRider/apexcharts-card) für die 30-Tage-Übersicht (optional)
+
+Die Einrichtung umfasst vier Bausteine, die aufeinander aufbauen:
+
+1. **Drei Helper** — Startzeit, Startwert, Grundlast
+2. **Vier Utility Meters** — Tag, Woche, Monat, Jahr
+3. **Zehn Template-Sensoren** — Heizgradtage, Effizienz, Prognosen
+4. **Eine Automatisierung** — hält den Anker bei einem Zählerreset konsistent
 
 ## Installation
 
-### Schritt 1: Template-Sensoren einrichten
+### Schritt 1: Helper erstellen
 
-Die Template-Sensoren berechnen Heizgradtage und Verbrauchsprognosen basierend auf VDI 4710 Normdaten.
+Für die Verbrauchsprognosen werden **drei Helper** benötigt:
 
-Erstelle oder erweitere die Datei `templates.yaml` in deinem Home Assistant Konfigurationsverzeichnis:
+| Helper | Typ | Zweck |
+| --- | --- | --- |
+| `hg_pk32_pelletverbrauch_startzeit` | `input_datetime` | Beginn des Messzeitraums |
+| `hg_pk32_pelletverbrauch_startwert` | `input_number` | Zählerstand (kg) zu genau diesem Zeitpunkt |
+| `pelletverbrauch_grundlast_warmwasser` | `input_number` | Warmwasser-Grundlast in kg pro Tag |
+
+> **Startzeit und Startwert gehören zusammen.** Sie bilden einen gemeinsamen Ankerpunkt: „Am *Startzeit* stand der Zähler auf *Startwert*." Passen die beiden nicht zusammen, rechnet die Prognose mit einem falschen Verbrauch und liefert stillschweigend Unsinn. Das ist der mit Abstand häufigste Fehler bei dieser Einrichtung.
+
+**Option A: Über die UI erstellen (empfohlen)**
+
+1. Gehe zu **Einstellungen** → **Geräte & Dienste** → **Helfer**
+2. **Startzeit erstellen:**
+   - **+ Helfer erstellen** → **Datum und/oder Uhrzeit**
+   - **Name**: `hg_pk32_pelletverbrauch_startzeit`
+   - **Hat ein Datum**: ✓ · **Hat eine Zeit**: ✓
+3. **Startwert erstellen:**
+   - **+ Helfer erstellen** → **Zahl**
+   - **Name**: `hg_pk32_pelletverbrauch_startwert`
+   - **Minimum**: 0 · **Maximum**: 999999 · **Schrittweite**: 1 · **Einheit**: kg · **Modus**: Eingabefeld
+4. **Grundlast erstellen:**
+   - **+ Helfer erstellen** → **Zahl**
+   - **Name**: `pelletverbrauch_grundlast_warmwasser`
+   - **Minimum**: 0 · **Maximum**: 50 · **Schrittweite**: 0.01 · **Einheit**: kg/d · **Modus**: Eingabefeld
+
+**Option B: Per YAML erstellen**
+
+`input_datetime.yaml`:
+
+```yaml
+hg_pk32_pelletverbrauch_startzeit:
+  name: "Startzeit Pelletverbrauchszähler"
+  has_date: true
+  has_time: true
+```
+
+`input_number.yaml`:
+
+```yaml
+hg_pk32_pelletverbrauch_startwert:
+  name: "Startwert Pelletverbrauchszähler"
+  min: 0
+  max: 999999
+  step: 1
+  unit_of_measurement: "kg"
+  mode: box
+
+pelletverbrauch_grundlast_warmwasser:
+  name: "Pelletverbrauch Grundlast (Warmwasser)"
+  min: 0
+  max: 50
+  step: 0.01
+  unit_of_measurement: "kg/d"
+  icon: mdi:water-boiler
+  mode: box
+```
+
+Einbindung in `configuration.yaml`:
+
+```yaml
+input_datetime: !include input_datetime.yaml
+input_number: !include input_number.yaml
+```
+
+#### Die drei Helper befüllen
+
+Nach dem Neustart unter **Entwicklerwerkzeuge** → **Zustände** setzen:
+
+**Startzeit und Startwert.** Am einfachsten und robustesten ist der Jahresbeginn als Anker:
+
+- `input_datetime.hg_pk32_pelletverbrauch_startzeit` → `2026-01-01 00:00:00`
+- `input_number.hg_pk32_pelletverbrauch_startwert` → Zählerstand am 1. Januar
+
+Den Zählerstand am Jahresanfang bekommst du ohne Rätselraten aus dem Jahres-Utility-Meter:
+
+```
+Startwert = sensor.hg_pk32_pelletverbrauch − sensor.hg_pk32_pelletverbrauch_jahr
+```
+
+Beide Werte stehen in **Entwicklerwerkzeuge** → **Zustände**. Zur Kontrolle: nach dem Setzen muss `sensor.pelletverbrauch_heizanteil` im Attribut `verbrauch_gesamt` exakt den Jahresverbrauch anzeigen.
+
+Alternativ geht auch jeder andere Zeitpunkt — etwa die letzte Pelletlieferung. Wichtig ist nur, dass der Startwert der Zählerstand **genau zu dieser Startzeit** ist.
+
+**Grundlast.** Nimm den Verbrauch der beiden Hochsommermonate, in denen sicher nicht geheizt wurde:
+
+```
+Grundlast = (Verbrauch Juli + Verbrauch August) ÷ 62
+```
+
+Die Monatswerte findest du im Verlauf von `sensor.hg_pk32_pelletverbrauch_monat`. Beispiel: 154 kg + 163 kg ergeben 5,11 kg/Tag. Einmal im Jahr nachziehen reicht. Bei einer Solarthermie- oder Wärmepumpenunterstützung für das Warmwasser fällt der Wert deutlich niedriger aus.
+
+### Schritt 2: Utility Meters konfigurieren
+
+Die Utility Meters erfassen den Pelletverbrauch in verschiedenen Zeiträumen. Sie dienen der Anzeige und als Kontrollgröße gegen die Prognose — die Prognose selbst rechnet mit dem Rohzähler und dem Ankerpunkt, nicht mit diesen Zählern.
+
+`utility_meter.yaml`:
+
+```yaml
+# Tagesverbrauch - Grundlage für Heatmaps, Tagesanalysen, Trendlinien
+hg_pk32_pelletverbrauch_tag:
+  source: sensor.hg_pk32_pelletverbrauch
+  cycle: daily
+
+# Wochenverbrauch - für Wochenberichte
+hg_pk32_pelletverbrauch_woche:
+  source: sensor.hg_pk32_pelletverbrauch
+  cycle: weekly
+
+# Monatsverbrauch - liefert die Zahlen, aus denen du die Grundlast ableitest
+hg_pk32_pelletverbrauch_monat:
+  source: sensor.hg_pk32_pelletverbrauch
+  cycle: monthly
+
+# Jahresverbrauch - Referenz für Ist-vs.-Prognose und für den Startwert
+hg_pk32_pelletverbrauch_jahr:
+  source: sensor.hg_pk32_pelletverbrauch
+  cycle: yearly
+```
+
+Einbindung in `configuration.yaml`:
+
+```yaml
+utility_meter: !include utility_meter.yaml
+```
+
+### Schritt 3: Template-Sensoren einrichten
+
+Erstelle oder erweitere `templates.yaml`:
 
 ```yaml
 #
-# Templates - Pelletverbrauch HG-PK32
+# Templates - Pelletverbrauch
 #
-# Korrigierte Fassung vom 12.09.2026.
+# Modell:  Verbrauch = Grundlast * Tage + kg/HDD * Heizgradtage
 #
-# WAS GEAENDERT WURDE
-#
-# 1) Zwei-Komponenten-Modell statt reiner HDD-Skalierung.
-#    Vorher wurde der gesamte Verbrauch als wetterabhaengig behandelt. Die
-#    Warmwasserbereitung laeuft aber das ganze Jahr und hat mit Heizgradtagen
-#    nichts zu tun. Im Sommer geht HDD gegen null, der Verbrauch nicht - damit
-#    explodiert kg/HDD und die Hochrechnung mit der Jahres-HDD ebenfalls.
-#    Jetzt gilt:  Verbrauch = Grundlast * Tage  +  kg/HDD * HDD
-#    Die Grundlast steht in input_number.pelletverbrauch_grundlast_warmwasser
-#    (aktuell 5,11 kg/Tag, hergeleitet aus Juli 154 kg + August 163 kg / 62 Tage).
-#
-# 2) Die Monats-HDD-Tabelle steht weiterhin inline in den vier Sensoren, die
-#    sie brauchen. Sauber waere sie einmal als Makro unter
-#    config/custom_templates/heizung.jinja - dann muesste sie bei einer
-#    Aenderung nur an einer Stelle angefasst werden. Das ist der naechste
-#    sinnvolle Schritt, aendert aber nichts an der Rechnung.
-#
-# 3) Die Jahres-HDD war in Sensor 6 als 2798 hart eingetragen, obwohl es
-#    sensor.hdd_norm_jahr gibt. Jetzt durchgaengig ueber den Sensor.
-#
-# 4) availability statt | float(0).
-#    Faellt der Zaehler aus, lieferte float(0) einen negativen Verbrauch, der
-#    von "verbrauch > 0" auf 0 gefiltert wurde - alle Prognosen sprangen still
-#    auf 0. Jetzt werden die Sensoren unavailable, das sieht man.
-#
-# 5) hdd_norm_zeitraum: Monatsschleife von 24 auf 130 erweitert. Bei einem
-#    Messzeitraum ueber zwei Jahre fielen vorher Monate stillschweigend weg.
-#
-# 6) Neu: sensor.hdd_norm_bis_heute (Jahres-HDD bis heute) und
-#    sensor.pelletverbrauch_heizanteil - beide werden fuer das Modell
-#    gebraucht und sind auch fuer sich nuetzlich.
-#
-# HINWEIS ZUR GRUNDLAST
-# Einmal im Jahr nachziehen: Verbrauch Juli + August geteilt durch 62.
-# Ueber sensor.hg_pk32_pelletverbrauch_monat in den Statistiken ablesbar.
+# Die Monats-HDD-Tabelle steht in vier Sensoren inline. Wer sie an einer
+# Stelle pflegen will, legt sie als Makro unter
+# config/custom_templates/heizung.jinja ab und importiert sie.
 #
 
 - sensor:
 
     ###########################################################################
-    # 1) Norm-HDD des laufenden Monats
-    #    Die Monatstabelle liegt hier als Attribut und ist die einzige Quelle
-    #    fuer alle folgenden Sensoren.
+    # 1) Norm-HDD des laufenden Monats (VDI 4710 / DWD 1991-2020)
     ###########################################################################
     - name: "hdd_norm_monat"
       unique_id: hdd_norm_monat
@@ -87,7 +206,8 @@ Erstelle oder erweitere die Datei `templates.yaml` in deinem Home Assistant Konf
         {{ hdd[now().month] }}
 
     ###########################################################################
-    # 2) Norm-HDD Jahr (VDI 4710) - Summe der Monatstabelle
+    # 2) Norm-HDD Jahr - Summe der Monatstabelle, damit beide nicht
+    #    auseinanderlaufen koennen
     ###########################################################################
     - name: "hdd_norm_jahr"
       unique_id: hdd_norm_jahr
@@ -105,16 +225,16 @@ Erstelle oder erweitere die Datei `templates.yaml` in deinem Home Assistant Konf
     - name: "pelletverbrauch_zeitraum_tage"
       unique_id: pelletverbrauch_zeitraum_tage
       unit_of_measurement: "d"
-      state: >
-        {% set ts = state_attr('input_datetime.hg_pk32_pelletverbrauch_startzeit','timestamp') %}
-        {{ ((now().timestamp() - ts) / 86400) | round(2) }}
       availability: >
         {% set ts = state_attr('input_datetime.hg_pk32_pelletverbrauch_startzeit','timestamp') %}
         {{ ts is not none and ts > 0 and now().timestamp() > ts }}
+      state: >
+        {% set ts = state_attr('input_datetime.hg_pk32_pelletverbrauch_startzeit','timestamp') %}
+        {{ ((now().timestamp() - ts) / 86400) | round(2) }}
 
     ###########################################################################
     # 4) Norm-HDD im Messzeitraum
-    #    Start- und Endmonat tagesgenau anteilig, die Monate dazwischen voll.
+    #    Start- und Endmonat tagesgenau anteilig, Monate dazwischen voll.
     ###########################################################################
     - name: "hdd_norm_zeitraum"
       unique_id: hdd_norm_zeitraum
@@ -158,9 +278,7 @@ Erstelle oder erweitere die Datei `templates.yaml` in deinem Home Assistant Konf
         {{ ns.sum | round(2) }}
 
     ###########################################################################
-    # 5) Norm-HDD vom 01.01. bis heute
-    #    Wird fuer die Restjahr-Rechnung gebraucht und ersetzt den frueheren,
-    #    dauerhaft unavailable sensor.hdd_norm_bis_monat.
+    # 5) Norm-HDD vom 01.01. bis heute - Grundlage der Restjahr-Rechnung
     ###########################################################################
     - name: "hdd_norm_bis_heute"
       unique_id: hdd_norm_bis_heute
@@ -206,7 +324,7 @@ Erstelle oder erweitere die Datei `templates.yaml` in deinem Home Assistant Konf
               * states('sensor.pelletverbrauch_zeitraum_tage') | float) | round(1) }}
 
     ###########################################################################
-    # 7) Effizienz: kg pro HDD - nur noch der wetterabhaengige Heizanteil
+    # 7) Effizienz: kg pro HDD - nur der wetterabhaengige Heizanteil
     ###########################################################################
     - name: "pellets_pro_hdd_norm"
       unique_id: pellets_pro_hdd_norm
@@ -220,7 +338,7 @@ Erstelle oder erweitere die Datei `templates.yaml` in deinem Home Assistant Konf
             / states('sensor.hdd_norm_zeitraum') | float) | round(3) }}
 
     ###########################################################################
-    # 8) Jahresprognose = Grundlast * 365 + kg/HDD * Jahres-HDD
+    # 8) Jahresprognose = Grundlast * Tage im Jahr + kg/HDD * Jahres-HDD
     ###########################################################################
     - name: "pelletverbrauch_prognose_jahr_hdd_norm"
       unique_id: pelletverbrauch_prognose_jahr_hdd_norm
@@ -275,167 +393,87 @@ Erstelle oder erweitere die Datei `templates.yaml` in deinem Home Assistant Konf
             + states('sensor.pellets_pro_hdd_norm') | float * hdd_rest) | round(1) }}
 ```
 
-**Wichtig:** Stelle sicher, dass `templates.yaml` in deiner `configuration.yaml` eingebunden ist:
+Einbindung in `configuration.yaml`:
 
 ```yaml
-# Templates
 template: !include templates.yaml
 ```
 
-### Schritt 2: Helper erstellen
+Übernehmen mit **Entwicklerwerkzeuge** → **YAML** → **Konfiguration prüfen**, danach **Vorlagen neu laden**. Ein Neustart ist nicht nötig. Den Prüfschritt nicht überspringen: bei einem YAML-Fehler lädt der gesamte `template:`-Block nicht und alle zehn Sensoren verschwinden statt nur einem.
 
-Für die Verbrauchsprognosen werden **zwei Helper** benötigt:
+### Schritt 4: Automatisierung für den Zählerreset
 
-| Helper | Typ | Zweck |
-| --- | --- | --- |
-| `hg_pk32_pelletverbrauch_startzeit` | `input_datetime` | Beginn des Messzeitraums |
-| `hg_pk32_pelletverbrauch_startwert` | `input_number` | Zählerstand (kg) bei Beginn |
+Wird der Pelletzähler am Kessel zurückgesetzt, stimmt der Ankerpunkt nicht mehr: der Startwert zeigt auf einen Zählerstand, den es nicht mehr gibt. Ohne Korrektur rechnet die Prognose ab diesem Moment mit einem viel zu hohen Verbrauch weiter — ohne jede Fehlermeldung.
 
-**Option A: Über die UI erstellen (empfohlen)**
-
-1. Gehe zu **Einstellungen** → **Geräte & Dienste** → **Helfer**
-2. **Startzeit erstellen:**
-   - Klicke auf **+ Helfer erstellen** → **Datum und/oder Uhrzeit**
-   - **Name**: `hg_pk32_pelletverbrauch_startzeit`
-   - **Hat ein Datum**: ✓ aktiviert
-   - **Hat eine Zeit**: ✓ aktiviert
-   - Klicke auf **Erstellen**
-3. **Startwert erstellen:**
-   - Klicke auf **+ Helfer erstellen** → **Zahl**
-   - **Name**: `hg_pk32_pelletverbrauch_startwert`
-   - **Minimum**: 0
-   - **Maximum**: 999999
-   - **Schrittweite**: 1
-   - **Einheit**: kg
-   - Klicke auf **Erstellen**
-4. Setze beide Helper auf die Werte zum Zeitpunkt, ab dem du den Verbrauch messen willst:
-   - **Startzeit**: Datum/Uhrzeit des Messbeginns
-   - **Startwert**: Der Zählerstand von `sensor.hg_pk32_pelletverbrauch` zu diesem Zeitpunkt
-
-**Option B: Per YAML erstellen**
-
-Erstelle oder erweitere die Datei `input_datetime.yaml`:
+Diese Automatisierung setzt bei einem echten Reset **beide** Ankerwerte gemeinsam neu:
 
 ```yaml
-#
-# Input DateTime Helpers
-#
-
-# Startzeit für Pelletverbrauch-Berechnung
-# Setze dieses Datum auf den Zeitpunkt, ab dem der Verbrauch gezählt werden soll
-hg_pk32_pelletverbrauch_startzeit:
-  name: "Startzeit Pelletverbrauchszähler"
-  has_date: true
-  has_time: true
+- id: pelletverbrauch_reset_anker
+  alias: "Pelletverbrauch: Anker aktualisieren bei Zählerreset"
+  description: >
+    Als Reset gilt nur ein Rückgang um mindestens 100 kg auf höchstens die
+    Hälfte. Ein einzelner Ausreißer oder ein Ausfall des Zählers löst nichts aus.
+  mode: single
+  max_exceeded: silent
+  triggers:
+    - trigger: state
+      entity_id: sensor.hg_pk32_pelletverbrauch
+  conditions:
+    - condition: template
+      value_template: >
+        {{ trigger.from_state is not none
+           and trigger.to_state is not none
+           and trigger.from_state.state | is_number
+           and trigger.to_state.state | is_number
+           and (trigger.from_state.state | float - trigger.to_state.state | float) >= 100
+           and trigger.to_state.state | float <= (trigger.from_state.state | float * 0.5) }}
+  actions:
+    - action: input_number.set_value
+      target:
+        entity_id: input_number.hg_pk32_pelletverbrauch_startwert
+      data:
+        value: "{{ trigger.to_state.state | float }}"
+    - action: input_datetime.set_datetime
+      target:
+        entity_id: input_datetime.hg_pk32_pelletverbrauch_startzeit
+      data:
+        date: "{{ now().strftime('%Y-%m-%d') }}"
+        time: "{{ now().strftime('%H:%M:%S') }}"
+    - action: logbook.log
+      data:
+        name: "Pelletverbrauch - Anker"
+        message: >
+          Zählerreset erkannt ({{ trigger.from_state.state }} ->
+          {{ trigger.to_state.state }} kg). Anker neu gesetzt.
+        entity_id: sensor.hg_pk32_pelletverbrauch
 ```
 
-Erstelle oder erweitere die Datei `input_number.yaml`:
+> **Warum die Bedingung so umständlich aussieht.** Naheliegend wäre
+> `{{ to_state.state | float(0) < from_state.state | float(0) }}`. Das ist eine Falle:
+> `float(0)` greift auch bei `unavailable`, also zählt jeder Ausfall des Zählers als
+> Reset und verstellt den Anker. Deshalb die explizite Prüfung auf Zahlen plus ein
+> Mindestrückgang.
 
-```yaml
-#
-# Input Number Helpers
-#
+Nach einem Reset braucht die Prognose einige Wochen, bis der Messzeitraum wieder lang genug für eine belastbare Effizienzkennzahl ist.
 
-# Zählerstand bei Beginn des Messzeitraums
-# Setze diesen Wert auf den Pelletverbrauch-Zählerstand zum Startzeitpunkt
-hg_pk32_pelletverbrauch_startwert:
-  name: "Startwert Pelletverbrauchszähler"
-  min: 0
-  max: 999999
-  step: 1
-  unit_of_measurement: "kg"
-  mode: box
-```
+### Schritt 5: ApexCharts Card installieren (optional)
 
-Stelle sicher, dass beide Dateien in deiner `configuration.yaml` eingebunden sind:
+Für die 30-Tage-Übersicht wird die ApexCharts Card benötigt. Installation via HACS:
 
-```yaml
-# Input DateTime
-input_datetime: !include input_datetime.yaml
+1. Öffne **HACS** → **Frontend**
+2. Suche nach "ApexCharts Card"
+3. Klicke auf **Download**
+4. Starte Home Assistant neu
 
-# Input Number
-input_number: !include input_number.yaml
-```
-
-Nach dem Neustart von Home Assistant: Gehe zu **Entwicklerwerkzeuge** → **Zustände** und setze beide Helper:
-
-- `input_datetime.hg_pk32_pelletverbrauch_startzeit` → Startdatum (z.B. `2025-11-22 17:51:43`)
-- `input_number.hg_pk32_pelletverbrauch_startwert` → Zählerstand bei Start (z.B. `121`)
-
-> **Wichtig**: Ohne diese Helper zeigen alle Prognose-Sensoren "unknown" oder "0" an! Die Effizienz wird aus dem **Verbrauch seit Start** (aktueller Zähler minus Startwert) und den **HDD im Messzeitraum** berechnet.
-
-### Schritt 3: Utility Meters konfigurieren
-
-Die Utility Meters erfassen den Pelletverbrauch in verschiedenen Zeiträumen (Tag, Woche, Monat, Jahr).
-
-Erstelle oder erweitere die Datei `utility_meter.yaml`:
-
-```yaml
-#
-# Utility Meters
-#
-
-###########################################################################
-# 1) TAGESVERBRAUCH PELLETS
-#    - erzeugt einen täglichen Pelletverbrauch in kg
-#    - Grundlage für Heatmaps, Tagesanalysen, Trendlinien
-###########################################################################
-hg_pk32_pelletverbrauch_tag:
-  source: sensor.hg_pk32_pelletverbrauch
-  cycle: daily
-
-###########################################################################
-# 2) WOCHENVERBRAUCH PELLETS
-#    - sauberer 7-Tage-intervallierter Verbrauch
-#    - sinnvoll für Wochenberichte oder Effizienzauswertungen
-###########################################################################
-hg_pk32_pelletverbrauch_woche:
-  source: sensor.hg_pk32_pelletverbrauch
-  cycle: weekly
-
-###########################################################################
-# 3) MONATSVERBRAUCH PELLETS
-#    - extrem wichtig für:
-#        * kg/HDD-Berechnung (Effizienz)
-#        * Monatsprognosen
-#        * Jahresprognosen
-#    - dieser Wert wird direkt in den Templates weiterverwendet
-###########################################################################
-hg_pk32_pelletverbrauch_monat:
-  source: sensor.hg_pk32_pelletverbrauch
-  cycle: monthly
-
-###########################################################################
-# 4) JAHRESVERBRAUCH PELLETS
-#    - summiert deinen tatsächlichen Pelletverbrauch pro Kalenderjahr
-#    - dient als Referenz für Ist-vs.-Prognose-Analysen
-###########################################################################
-hg_pk32_pelletverbrauch_jahr:
-  source: sensor.hg_pk32_pelletverbrauch
-  cycle: yearly
-```
-
-**Wichtig:** Stelle sicher, dass `utility_meter.yaml` in deiner `configuration.yaml` eingebunden ist:
-
-```yaml
-# Utility Meters
-utility_meter: !include utility_meter.yaml
-```
-
-### Schritt 4: Dashboard erstellen
-
-Erstelle ein neues Dashboard in Home Assistant oder füge eine neue Ansicht hinzu:
+### Schritt 6: Dashboard erstellen
 
 1. Gehe zu **Einstellungen** → **Dashboards**
-2. Klicke auf **Dashboard hinzufügen** oder öffne ein bestehendes Dashboard
-3. Füge eine neue Ansicht hinzu mit folgenden Einstellungen:
-   - **Pfad**: `heating`
-   - **Icon**: `mdi:heating-coil`
-   - **Titel**: Heizung
-   - **Typ**: Masonry
+2. Öffne ein bestehendes Dashboard oder lege ein neues an
+3. Wechsle in den **Bearbeitungsmodus** (Stift oben rechts)
+4. Öffne über das Dreipunktmenü den **Raw-Konfigurationseditor**
+5. Füge den folgenden YAML-Block als neue Ansicht unter `views:` ein
 
-4. Wechsle in den **Bearbeitungsmodus** (drei Punkte oben rechts → **Bearbeiten**)
-5. Kopiere den folgenden YAML-Code und füge ihn in die Ansicht ein:
+Der Block bringt Pfad, Titel, Icon und Typ bereits mit — die Ansicht muss nicht vorher von Hand angelegt werden.
 
 ```yaml
 type: masonry
@@ -548,6 +586,9 @@ cards:
         state_color: true
         show_header_toggle: false
     columns: 1
+
+  # Diese Karte zeigt einen Raumfühler im Heizraum. Passe die beiden
+  # Entitäten an deine Installation an oder entferne die Karte.
   - square: false
     type: grid
     cards:
@@ -572,6 +613,7 @@ cards:
               type: entity
         columns: 2
     columns: 1
+
   - square: false
     type: grid
     cards:
@@ -687,6 +729,7 @@ cards:
         days_to_show: 1
         title: Außentemperatur
     columns: 1
+
   - type: vertical-stack
     cards:
       - type: entities
@@ -708,27 +751,50 @@ cards:
           - type: section
             label: Verbrauchsprognosen (HDD/VDI 4710)
           - entity: sensor.pelletverbrauch_prognose_monat_hdd_norm
-            name: Monatsprognose (HDD/VDI 4710)
+            name: Monatsprognose
             icon: mdi:chart-line
           - entity: sensor.pelletverbrauch_prognose_jahr_hdd_norm
-            name: Jahresprognose (HDD/VDI 4710)
+            name: Jahresprognose
             icon: mdi:chart-areaspline
           - entity: sensor.pelletverbrauch_restjahr_hdd_norm
-            name: Restjahr-Prognose (HDD/VDI 4710)
+            name: Restjahr-Prognose
             icon: mdi:calendar-clock
           - type: section
-            label: Effizienzdaten
+            label: Rechengrundlagen
+          - entity: input_number.pelletverbrauch_grundlast_warmwasser
+            name: Grundlast Warmwasser
+            icon: mdi:water-boiler
+          - entity: sensor.pelletverbrauch_heizanteil
+            name: Heizanteil im Messzeitraum
+            icon: mdi:radiator
           - entity: sensor.pellets_pro_hdd_norm
-            name: Effizienz
+            name: Effizienz (nur Heizanteil)
             icon: mdi:speedometer
           - type: section
-            label: Heizgradtage (Norm via VDI 4710 / DWD 1991–2020)
+            label: Messzeitraum
+          - entity: input_datetime.hg_pk32_pelletverbrauch_startzeit
+            name: Startzeit
+            icon: mdi:calendar-start
+          - entity: input_number.hg_pk32_pelletverbrauch_startwert
+            name: Startwert
+            icon: mdi:counter
+          - entity: sensor.pelletverbrauch_zeitraum_tage
+            name: Länge
+            icon: mdi:calendar-expand-horizontal
+          - type: section
+            label: Heizgradtage (VDI 4710 / DWD 1991–2020)
           - entity: sensor.hdd_norm_monat
             name: HDD Norm Monat
             icon: mdi:thermometer
           - entity: sensor.hdd_norm_jahr
             name: HDD Norm Jahr
             icon: mdi:thermometer-lines
+          - entity: sensor.hdd_norm_bis_heute
+            name: HDD Norm bis heute
+            icon: mdi:thermometer-chevron-up
+          - entity: sensor.hdd_norm_zeitraum
+            name: HDD Norm im Messzeitraum
+            icon: mdi:chart-timeline-variant
           - type: section
             label: Pelletverbrauch – 30 Tage Übersicht
           - type: custom:apexcharts-card
@@ -772,6 +838,7 @@ cards:
                 yaxis:
                   lines:
                     show: false
+
   - type: entities
     title: Pelletheizung (Alle Sensordaten)
     icon: mdi:fire-circle
@@ -1023,86 +1090,127 @@ cards:
         icon: mdi:toggle-switch
 ```
 
-### Schritt 5: ApexCharts Card installieren (optional)
-
-Für die 30-Tage-Übersicht wird die ApexCharts Card benötigt. Installation via HACS:
-
-1. Öffne **HACS** → **Frontend**
-2. Suche nach "ApexCharts Card"
-3. Klicke auf **Download**
-4. Starte Home Assistant neu
-
 ## Erklärung der Sensoren
 
-### Template-Sensoren
+### Heizgradtage
 
-#### Heizgradtage (HDD)
+| Sensor | Bedeutung |
+| --- | --- |
+| `hdd_norm_monat` | Norm-Heizgradtage des laufenden Monats (VDI 4710 / DWD 1991–2020) |
+| `hdd_norm_jahr` | Norm-Heizgradtage eines vollen Jahres, als Summe der Monatstabelle — 2798 HDD im deutschen Mittel |
+| `hdd_norm_bis_heute` | Norm-HDD vom 1. Januar bis heute, tagesgenau im laufenden Monat |
+| `hdd_norm_zeitraum` | Norm-HDD im Messzeitraum, also ab der gesetzten Startzeit |
 
-- **hdd_norm_monat**: Monatliche Norm-Heizgradtage basierend auf VDI 4710 / DWD (1991-2020)
-- **hdd_norm_jahr**: Jährliche Norm-Heizgradtage (2798 HDD für Deutschland Mittel)
+### Messzeitraum und Aufteilung
 
-#### Effizienz
+| Sensor | Bedeutung |
+| --- | --- |
+| `pelletverbrauch_zeitraum_tage` | Länge des Messzeitraums in Tagen |
+| `pelletverbrauch_heizanteil` | Verbrauch im Messzeitraum abzüglich Grundlast — also der Teil, der tatsächlich aufs Heizen entfällt. Die Attribute `verbrauch_gesamt` und `grundlast_anteil` zeigen die Aufteilung |
 
-- **pellets_pro_hdd_norm**: Berechnet die Effizienz in kg Pellets pro Heizgradtag
+### Effizienz
 
-#### Prognosen
+| Sensor | Bedeutung |
+| --- | --- |
+| `pellets_pro_hdd_norm` | kg Pellets pro Heizgradtag, berechnet **nur aus dem Heizanteil**. Typische Größenordnung für ein Einfamilienhaus: 1 bis 2 kg/HDD. Werte über 5 deuten auf einen falsch gesetzten Ankerpunkt oder eine zu niedrige Grundlast hin |
 
-- **pelletverbrauch_prognose_monat_hdd_norm**: Monatsprognose basierend auf HDD
-- **pelletverbrauch_prognose_jahr_hdd_norm**: Jahresprognose basierend auf HDD
-- **pelletverbrauch_restjahr_hdd_norm**: Restjahresprognose (verbleibende Monate)
+### Prognosen
+
+| Sensor | Rechnung |
+| --- | --- |
+| `pelletverbrauch_prognose_monat_hdd_norm` | Grundlast × Tage im Monat + kg/HDD × Monats-HDD |
+| `pelletverbrauch_prognose_jahr_hdd_norm` | Grundlast × Tage im Jahr + kg/HDD × Jahres-HDD |
+| `pelletverbrauch_restjahr_hdd_norm` | Grundlast × Resttage + kg/HDD × (Jahres-HDD − HDD bis heute) |
+
+**Plausibilitätsprüfung:** Jahresverbrauch (Ist) plus Restjahr-Prognose muss ungefähr die Jahresprognose ergeben. Weichen die beiden stark voneinander ab, stimmt etwas mit dem Ankerpunkt nicht.
 
 ### Utility Meters
 
-- **hg_pk32_pelletverbrauch_tag**: Täglicher Pelletverbrauch
-- **hg_pk32_pelletverbrauch_woche**: Wöchentlicher Pelletverbrauch
-- **hg_pk32_pelletverbrauch_monat**: Monatlicher Pelletverbrauch (wichtig für HDD-Berechnung)
-- **hg_pk32_pelletverbrauch_jahr**: Jährlicher Pelletverbrauch
+| Sensor | Bedeutung |
+| --- | --- |
+| `hg_pk32_pelletverbrauch_tag` | Tagesverbrauch, speist die 30-Tage-Grafik |
+| `hg_pk32_pelletverbrauch_woche` | Wochenverbrauch |
+| `hg_pk32_pelletverbrauch_monat` | Monatsverbrauch — daraus leitest du die Grundlast ab |
+| `hg_pk32_pelletverbrauch_jahr` | Jahresverbrauch — Referenz für Ist-vs.-Prognose und zur Bestimmung des Startwerts |
 
 ## Anpassungen
 
 ### Heizgradtage für deine Region
 
-Die Norm-Heizgradtage basieren auf dem deutschen Mittelwert. Du kannst diese Werte für deine Region anpassen:
+Die Norm-Heizgradtage entsprechen dem deutschen Mittelwert. Für deine Region anpassen:
 
-1. Besuche die [DWD Climate Data Center](https://cdc.dwd.de/portal/) Seite
-2. Suche nach den Heizgradtagen für deine Region
-3. Passe die Werte in den Templates entsprechend an
+1. Besuche das [DWD Climate Data Center](https://cdc.dwd.de/portal/)
+2. Suche die Heizgradtage für deine Region
+3. Passe die Monatstabelle an — sie steht in vier Sensoren (`hdd_norm_monat`, `hdd_norm_jahr`, `hdd_norm_zeitraum`, `hdd_norm_bis_heute`) und muss überall gleich sein
+
+Wer die Tabelle nur an einer Stelle pflegen will, legt sie als Makro unter `config/custom_templates/heizung.jinja` ab und importiert sie in den vier Sensoren.
 
 ### Sensor-Namen
 
-Falls deine Hargassner-Installation andere Sensor-Namen verwendet (z.B. `hg_hsk25` statt `hg_pk32`), musst du diese in allen YAML-Dateien anpassen.
+Falls deine Installation ein anderes Präfix verwendet (z.B. `hg_hsk25` statt `hg_pk32`), musst du dieses in allen YAML-Dateien anpassen.
+
+### Raumfühler im Heizraum
+
+Die Karte „Heizraum - Temperaturen" verweist auf `sensor.thd_005_temperature` und `sensor.thd_005_humidity`. Das sind installationsspezifische Fühler — ersetze sie durch deine eigenen oder entferne die Karte.
 
 ## Troubleshooting
 
-### Sensoren zeigen "unknown" oder "unavailable"
+### Prognose-Sensoren zeigen `unavailable`
 
-- Stelle sicher, dass die Hargassner Integration korrekt installiert und konfiguriert ist
-- Überprüfe, ob die Utility Meters korrekt in `configuration.yaml` eingebunden sind
-- Starte Home Assistant neu nach Änderungen an den Konfigurationsdateien
+Das ist gewollt und zeigt an, dass eine Eingangsgröße fehlt. Die Kette von unten nach oben durchgehen — der erste Sensor, der `unavailable` ist, hat die Ursache:
 
-### Prognose-Sensoren zeigen "0" oder "unknown"
+```
+input_datetime.hg_pk32_pelletverbrauch_startzeit   gesetzt?
+input_number.hg_pk32_pelletverbrauch_startwert     gesetzt?
+input_number.pelletverbrauch_grundlast_warmwasser  gesetzt?   ← wird gern vergessen
+        ↓
+sensor.pelletverbrauch_zeitraum_tage
+sensor.hdd_norm_zeitraum
+        ↓
+sensor.pelletverbrauch_heizanteil
+        ↓
+sensor.pellets_pro_hdd_norm
+        ↓
+die drei Prognose-Sensoren
+```
 
-- **Häufigste Ursache**: Der `input_datetime.hg_pk32_pelletverbrauch_startzeit` Helper wurde nicht erstellt oder nicht konfiguriert
-- Erstelle den Helper wie in **Schritt 2** beschrieben
-- Setze das Datum auf einen sinnvollen Startzeitpunkt (z.B. Beginn der Heizperiode oder letztes Pellet-Auffüllen)
-- Überprüfe in **Entwicklerwerkzeuge** → **Zustände**, ob der Helper existiert und einen gültigen Zeitstempel hat
+Am häufigsten fehlt die **Grundlast**: der Helper existiert nach dem Anlegen zwar, hat aber noch keinen Wert. Ohne ihn bleiben `pelletverbrauch_heizanteil` und damit alles darüber `unavailable`.
+
+### Die Jahresprognose ist absurd hoch
+
+Typisch sind Werte im Bereich des Zehn- bis Dreißigfachen des realistischen Verbrauchs. Zwei Ursachen kommen in Frage, beide beim Ankerpunkt:
+
+**Startwert passt nicht zur Startzeit.** Prüfe das Attribut `verbrauch_gesamt` von `sensor.pelletverbrauch_heizanteil` — es zeigt, mit welchem Verbrauch gerechnet wird. Ist der Wert größer als dein Jahresverbrauch, obwohl die Startzeit im laufenden Jahr liegt, stimmt der Anker nicht. Setze beide Werte nach der Anleitung in Schritt 1 neu.
+
+**Messzeitraum liegt im Sommer.** Beginnt der Messzeitraum im Juni und endet im September, sind die Norm-HDD in diesem Fenster sehr klein. Selbst eine korrekt abgezogene Grundlast lässt dann wenig Heizanteil übrig, und die Kennzahl wird instabil. Für belastbare Prognosen sollte der Messzeitraum mindestens ein paar Wochen Heizperiode enthalten — deshalb ist der Jahresbeginn als Anker die beste Wahl.
+
+### Die Prognose ist zu hoch, aber nicht absurd
+
+Meist ist die Grundlast zu niedrig angesetzt. Prüfe sie gegen die Sommermonate: `sensor.hg_pk32_pelletverbrauch_monat` im Juli und August sollte ungefähr Grundlast × 31 entsprechen.
+
+### Sensoren zeigen `unknown` oder `unavailable`
+
+- Prüfe, ob die Hargassner Integration korrekt installiert und verbunden ist
+- Prüfe, ob `templates.yaml`, `utility_meter.yaml`, `input_number.yaml` und `input_datetime.yaml` in `configuration.yaml` eingebunden sind
+- Nach Änderungen an den Konfigurationsdateien Home Assistant neu starten
 
 ### ApexCharts Card wird nicht angezeigt
 
-- Stelle sicher, dass ApexCharts Card via HACS installiert ist
-- Lösche den Browser-Cache und lade die Seite neu
-- Überprüfe die Browser-Konsole auf Fehler
+- Prüfe, ob ApexCharts Card via HACS installiert ist
+- Browser-Cache leeren und Seite neu laden
+- Browser-Konsole auf Fehler prüfen
 
-### Prognosen sind ungenau
+### Prognosen weichen von der Realität ab
 
-- Die Prognosen basieren auf Norm-Heizgradtagen und können von der Realität abweichen
-- Für präzisere Prognosen kannst du echte Heizgradtage von einem Wetterdienst verwenden
-- Die Genauigkeit verbessert sich im Laufe der Heizperiode
+- Die Rechnung arbeitet mit **Norm**-Heizgradtagen, nicht mit dem tatsächlichen Wetter. Ein milder oder strenger Winter weicht entsprechend ab
+- Die Genauigkeit steigt mit der Länge des Messzeitraums, deutlich sichtbar ab der zweiten Heizperiode
+- Für präzisere Ergebnisse lassen sich echte Heizgradtage aus einem Wetterdienst einsetzen statt der Normtabelle
 
 ## Support
 
 Bei Fragen oder Problemen:
-- Öffne ein [Issue auf GitHub](https://github.com/yourusername/yourrepo/issues)
+
+- Öffne ein [Issue auf GitHub](https://github.com/bauer-group/IP-HargassnerIntegration/issues)
 - Besuche das [Home Assistant Forum](https://community.home-assistant.io/)
 
 ## Lizenz
