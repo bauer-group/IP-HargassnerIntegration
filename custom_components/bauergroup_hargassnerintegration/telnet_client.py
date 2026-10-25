@@ -47,6 +47,9 @@ class HargassnerTelnetClient:
         self._writer: StreamWriter | None = None
         self._connected = False
         self._running = False
+        # Buffer for incomplete TCP messages.
+        # TCP is a byte stream and read() may return only part of a line.
+        self._buffer = b""
 
         # Background tasks
         self._receiver_task: asyncio.Task | None = None
@@ -157,8 +160,20 @@ class HargassnerTelnetClient:
                             await self._close_connection()
                             continue
 
-                        # Process received data
-                        await self._process_data(data)
+                        # TCP is a byte stream. A single read() may contain:
+                        # - only part of a message,
+                        # - exactly one message, or
+                        # - multiple messages.
+                        #
+                        # Keep incomplete data in a persistent buffer and only
+                        # process complete newline-terminated messages.
+                        self._buffer += data
+
+                        while b"\n" in self._buffer:
+                            line, self._buffer = self._buffer.split(b"\n", 1)
+
+                            if line.strip():
+                                await self._process_data(line)
 
                     except asyncio.TimeoutError:
                         # Timeout is normal, just continue - staleness check handles dead connections
@@ -231,6 +246,9 @@ class HargassnerTelnetClient:
             finally:
                 self._writer = None
                 self._reader = None
+
+        # Discard any incomplete message from the old TCP connection
+        self._buffer = b""
 
         # Reset last_update to prevent immediate staleness detection after reconnect
         self._last_update = None
