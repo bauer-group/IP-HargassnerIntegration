@@ -67,6 +67,7 @@
 | HSV/CL 9-60KW | V14_0d | 🧪 Community tested (contributed by [@tk79](https://github.com/tk79)) |
 | Classic Lambda 40L-60L | V14_0m5 | 🧪 Community tested (contributed by [@philippe44](https://github.com/philippe44)) |
 | Nano.2(.3) 15 + Aux. buffer/AUP | V14_1HAR_q_nano2_zuspuf_aup3 | 🧪 Community tested (contributed by [@pschimik](https://github.com/pschimik)) |
+| Neo-MHV 35 | V10_2HEI_o1 | 🧪 Community tested (contributed by [@Enrica-r](https://github.com/Enrica-r)) |
 | Other Hargassner models | Custom | ⚠️ Requires firmware template |
 
 > **Note:** Additional firmware versions can be easily added via XML templates. See [Adding Firmware Support](docs/ADDING_FIRMWARE.md) (EN) or [Neue Firmware hinzufügen](docs/ADDING_FIRMWARE_DE.md) (DE) for details.
