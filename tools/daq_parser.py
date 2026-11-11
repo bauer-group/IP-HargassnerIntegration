@@ -23,6 +23,54 @@ from dataclasses import dataclass, asdict
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
+# Compressed DAQ files start with this header. The data after the DAQPRJ block
+# is then compressed with a simple back-reference scheme (see decompress_token_esc).
+_TOKEN_ESC_MARKER = b"COMPRESSION(TOKEN-ESC("
+_DAQPRJ_END = b"</DAQPRJ>"
+_TIMESTAMP_PREFIX = re.compile(r"^\d{4}-\d{2}-\d{2}_\d{2}:\d{2}:\d{2}\s+")
+
+
+def decompress_token_esc(data: bytes) -> bytes:
+    """Decompress a HISDAQ "TOKEN-ESC(4B, 0x10, 6, 13, 13)" data section.
+
+    A token is 4 bytes whose first byte has the top 6 bits 000100 (0x10-0x13).
+    The low 2 bits of that byte plus the next 3 bytes form a 26-bit big-endian
+    value v: distance = v >> 13 (bytes back into the output already produced),
+    length = v & 0x1FFF. The referenced bytes are copied one at a time, so a
+    copy may overlap its own output. Every other byte is a literal.
+
+    Verified on HV20 (V10.2HAR.n2) files: each decompressed line holds the
+    expected number of values.
+    """
+    out = bytearray()
+    i, n = 0, len(data)
+    while i < n:
+        b = data[i]
+        if (b >> 2) == 0b000100 and i + 3 < n:
+            v = ((b & 0x03) << 24) | (data[i + 1] << 16) | (data[i + 2] << 8) | data[i + 3]
+            distance, length = v >> 13, v & 0x1FFF
+            start = len(out) - distance
+            if distance > 0 and start >= 0:
+                for k in range(length):
+                    out.append(out[start + k])
+                i += 4
+                continue
+        out.append(b)
+        i += 1
+    return bytes(out)
+
+
+def read_daq_bytes(raw: bytes) -> bytes:
+    """Return the DAQ file content with the data section decompressed if needed."""
+    first_line = raw.split(b"\n", 1)[0]
+    if _TOKEN_ESC_MARKER not in first_line:
+        return raw
+    end = raw.find(_DAQPRJ_END)
+    if end < 0:
+        return raw
+    end += len(_DAQPRJ_END)
+    return raw[:end] + decompress_token_esc(raw[end:])
+
 
 @dataclass
 class SystemInfo:
@@ -122,18 +170,18 @@ class DAQParser:
         Returns:
             File content as string
         """
+        raw = read_daq_bytes(self.file_path.read_bytes())
+
         # Try encodings that properly handle German umlauts (ä, ö, ü)
         # cp1252/latin-1 first since Hargassner DAQ files typically use Windows encoding
         for encoding in ["cp1252", "latin-1", "iso-8859-1", "utf-8"]:
             try:
-                with open(self.file_path, "r", encoding=encoding, errors="strict") as f:
-                    return f.read()
-            except (UnicodeDecodeError, Exception):
+                return raw.decode(encoding, errors="strict").replace("\r\n", "\n")
+            except UnicodeDecodeError:
                 continue
 
         # Fallback: utf-8 with replacement for truly undecodable files
-        with open(self.file_path, "r", encoding="utf-8", errors="replace") as f:
-            return f.read()
+        return raw.decode("utf-8", errors="replace").replace("\r\n", "\n")
 
     def _extract_header(self) -> str:
         """Extract DAQ header line.
@@ -152,8 +200,11 @@ class DAQParser:
             DAQPRJ XML string
         """
         for line in self.lines:
-            if line.strip().startswith("<DAQPRJ>"):
-                return line.strip()
+            stripped = line.strip()
+            if stripped.startswith("<DAQPRJ>"):
+                # The DAQPRJ block may share its line with the data that follows
+                end = stripped.find("</DAQPRJ>")
+                return stripped[: end + len("</DAQPRJ>")] if end >= 0 else stripped
         return ""
 
     def _extract_system_info(self) -> SystemInfo:
@@ -261,11 +312,9 @@ class DAQParser:
         messages = []
 
         for line in self.lines:
-            if line.strip().startswith("pm "):
-                # Clean message
-                clean_msg = line.strip()
-                # Remove timestamps if present
-                clean_msg = re.sub(r"^\d{4}-\d{2}-\d{2}_\d{2}:\d{2}:\d{2}\s+", "", clean_msg)
+            # Lines look like "pm ..." or "YYYY-MM-DD_HH:MM:SS pm ..."
+            clean_msg = _TIMESTAMP_PREFIX.sub("", line.strip())
+            if clean_msg.startswith("pm "):
                 messages.append(clean_msg)
 
                 if len(messages) >= max_samples:

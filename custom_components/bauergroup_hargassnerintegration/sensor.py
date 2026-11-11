@@ -1,4 +1,4 @@
-"""Sensor platform for Hargassner Pellet Boiler."""
+"""Sensor platform for Hargassner boilers (pellet and log wood)."""
 from __future__ import annotations
 
 import logging
@@ -21,19 +21,29 @@ from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
+from .boiler_profiles import (
+    ENERGY_BUFFER_STORED,
+    BoilerProfile,
+    buffer_stored_energy_kwh,
+    get_profile,
+)
 from .const import (
-    BOILER_STATES_DE,
-    BOILER_STATES_EN,
+    CONF_BOILER_TYPE,
+    CONF_BUFFER_REFERENCE,
+    CONF_BUFFER_VOLUME,
     CONF_DEVICE_NAME,
     CONF_EFFICIENCY,
+    CONF_FIRMWARE,
     CONF_LANGUAGE,
     CONF_PELLET_ENERGY,
     CONF_SENSOR_SET,
+    DEFAULT_BUFFER_REFERENCE,
+    DEFAULT_BUFFER_VOLUME,
     DEFAULT_EFFICIENCY,
     DEFAULT_PELLET_ENERGY,
     DOMAIN,
-    ERROR_CODES,
     LANGUAGE_DE,
+    boiler_type_for_firmware,
     SENSOR_SET_FULL,
     STATE_CONNECTED,
     STATE_DISCONNECTED,
@@ -68,49 +78,29 @@ def _get_param_data(data: dict, key: str) -> dict | None:
 
 
 # =============================================================================
-# STANDARD SENSOR SET
+# SENSOR SETS
 # =============================================================================
-# Das Standard-Sensor-Set umfasst 27 Sensoren für die wichtigsten Kesselwerte.
-#
 # Automatisch erstellte Sensoren (immer aktiv, bei STANDARD und FULL):
 #   - Verbindung        : Telnet-Verbindungsstatus (connected/disconnected)
-#   - Betriebsstatus    : Aktueller Kesselzustand (ZK-Wert als Text)
-#   - Störung           : Aktive Störungsnummer und Beschreibung
-#   - Wärmemenge        : Berechnete Wärmeenergie in kWh (Pelletverbrauch × Energiegehalt × Wirkungsgrad)
+#   - Kesselzustand     : Aktueller Kesselzustand (ZK-Wert als Text)
+#   - Betriebsstatus    : Aktive Störungsnummer und Beschreibung
+#   - Energie           : Pellet: Wärmemenge aus Pelletverbrauch
+#                         Stückholz: im Puffer gespeicherte Energie
 #
-# Parameter-Sensoren (key, name, device_class, state_class, icon):
-#   Keys müssen exakt den Parameternamen aus dem Firmware-Template entsprechen.
+# Welche Parameter-Sensoren das STANDARD-Set enthält, legt das Kesselprofil
+# fest (boiler_profiles.py). FULL erzeugt Sensoren für alle Template-Parameter.
 # =============================================================================
-STANDARD_SENSORS = [
-    # --- Kessel & Verbrennung ---
-    ("TK", "Kesseltemperatur", SensorDeviceClass.TEMPERATURE, SensorStateClass.MEASUREMENT, "mdi:thermometer"),
-    ("TKsoll", "Kessel Solltemperatur", SensorDeviceClass.TEMPERATURE, SensorStateClass.MEASUREMENT, "mdi:thermometer-lines"),
-    ("TRG", "Rauchgastemperatur", SensorDeviceClass.TEMPERATURE, SensorStateClass.MEASUREMENT, "mdi:smoke"),
-    ("BRT", "Brennraumtemperatur", SensorDeviceClass.TEMPERATURE, SensorStateClass.MEASUREMENT, "mdi:fire"),
-    ("Leistung", "Ausgangsleistung", None, SensorStateClass.MEASUREMENT, "mdi:gauge"),
-    ("Effizienz", "Wirkungsgrad", None, SensorStateClass.MEASUREMENT, "mdi:speedometer"),
-    ("O2", "O2 Gehalt", None, SensorStateClass.MEASUREMENT, "mdi:chart-line"),
-    ("SZist", "Saugzug Ist", None, SensorStateClass.MEASUREMENT, "mdi:fan"),
-    # --- Puffer & Speicher ---
-    ("TPo", "Puffer Oben", SensorDeviceClass.TEMPERATURE, SensorStateClass.MEASUREMENT, "mdi:thermometer-lines"),
-    ("TPm", "Puffer Mitte", SensorDeviceClass.TEMPERATURE, SensorStateClass.MEASUREMENT, "mdi:thermometer-lines"),
-    ("TPu", "Puffer Unten", SensorDeviceClass.TEMPERATURE, SensorStateClass.MEASUREMENT, "mdi:thermometer-lines"),
-    ("Puff Füllgrad", "Pufferfüllgrad", None, SensorStateClass.MEASUREMENT, "mdi:battery-medium"),
-    ("Puffer_soll oben", "Puffer Sollwert Oben", SensorDeviceClass.TEMPERATURE, SensorStateClass.MEASUREMENT, "mdi:thermometer-plus"),
-    ("Puffer_soll unten", "Puffer Sollwert Unten", SensorDeviceClass.TEMPERATURE, SensorStateClass.MEASUREMENT, "mdi:thermometer-minus"),
-    # --- Heizkreise ---
-    ("TVL_1", "Vorlauf Heizkreis 1", SensorDeviceClass.TEMPERATURE, SensorStateClass.MEASUREMENT, "mdi:coolant-temperature"),
-    ("TVLs_1", "Vorlauf Soll Heizkreis 1", SensorDeviceClass.TEMPERATURE, SensorStateClass.MEASUREMENT, "mdi:target"),
-    ("TRL", "Rücklauftemperatur", SensorDeviceClass.TEMPERATURE, SensorStateClass.MEASUREMENT, "mdi:coolant-temperature"),
-    # --- Warmwasser ---
-    ("TB1", "Warmwasser", SensorDeviceClass.TEMPERATURE, SensorStateClass.MEASUREMENT, "mdi:water-boiler"),
-    ("TBs_1", "Warmwasser Soll", SensorDeviceClass.TEMPERATURE, SensorStateClass.MEASUREMENT, "mdi:target"),
-    # --- Außentemperatur ---
-    ("Taus", "Außentemperatur", SensorDeviceClass.TEMPERATURE, SensorStateClass.MEASUREMENT, "mdi:thermometer"),
-    # --- Pellets ---
-    ("Lagerstand", "Pelletvorrat", None, SensorStateClass.TOTAL, "mdi:silo"),
-    ("Verbrauchszähler", "Pelletverbrauch", None, SensorStateClass.TOTAL_INCREASING, "mdi:counter"),
-]
+
+
+def profile_for_entry(entry: ConfigEntry) -> BoilerProfile:
+    """Return the boiler profile of a config entry.
+
+    Falls back to the firmware's boiler type for entries not yet migrated.
+    """
+    boiler_type = entry.data.get(CONF_BOILER_TYPE) or boiler_type_for_firmware(
+        entry.data.get(CONF_FIRMWARE)
+    )
+    return get_profile(boiler_type)
 
 
 async def async_setup_entry(
@@ -135,8 +125,12 @@ async def async_setup_entry(
     # Add error sensor
     entities.append(HargassnerErrorSensor(coordinator, entry, language))
 
-    # Add energy sensor
-    entities.append(HargassnerEnergySensor(coordinator, entry, language))
+    # Add energy sensor - how energy is derived depends on the boiler type
+    profile = profile_for_entry(entry)
+    if profile.energy_kind == ENERGY_BUFFER_STORED:
+        entities.append(HargassnerBufferEnergySensor(coordinator, entry, language))
+    else:
+        entities.append(HargassnerEnergySensor(coordinator, entry, language))
 
     # Add sensors based on sensor set configuration
     if sensor_set == SENSOR_SET_FULL:
@@ -186,9 +180,10 @@ async def async_setup_entry(
                 )
             )
     else:
-        # STANDARD mode: Only create predefined sensors
-        for sensor_def in STANDARD_SENSORS:
-            key, name, device_class, state_class, icon = sensor_def
+        # STANDARD mode: the boiler profile's predefined sensors
+        for key, name, device_class_str, state_class_str, icon in profile.standard_sensors:
+            device_class = SensorDeviceClass(device_class_str) if device_class_str else None
+            state_class = SensorStateClass(state_class_str) if state_class_str else None
             desc = PARAMETER_DESCRIPTIONS.get(key, {})
             display_name = desc.get(language.lower(), name)
             entities.append(
@@ -223,7 +218,7 @@ class HargassnerBaseSensor(CoordinatorEntity, SensorEntity):
             identifiers={(DOMAIN, entry.entry_id)},
             name=entry.data.get(CONF_DEVICE_NAME, "Hargassner Boiler"),
             manufacturer="Hargassner",
-            model="Nano-PK",
+            model=profile_for_entry(entry).model,
             sw_version=entry.data.get("firmware", "Unknown"),
             configuration_url=f"http://{entry.data.get('host', '')}",
         )
@@ -296,35 +291,51 @@ class HargassnerStateSensor(HargassnerBaseSensor):
         self._attr_name = "Boiler State" if language.upper() == "EN" else "Kesselzustand"
         self._attr_unique_id = f"{entry.entry_id}_state"
         self._language = language
-        self._attr_options = BOILER_STATES_DE if language.upper() == "DE" else BOILER_STATES_EN
+        self._profile = profile_for_entry(entry)
+        self._attr_options = self._profile.state_options(language)
+        fallback = self._profile.state_name(-1, language)
+        if not self._profile.unknown_state_as_number and fallback not in self._attr_options:
+            self._attr_options.append(fallback)
+
+    def _zk(self) -> int | None:
+        """Current ZK value, or None if not available."""
+        zk_data = _get_param_data(self.coordinator.data, "ZK")
+        if not zk_data:
+            return None
+        try:
+            return int(zk_data.get("value", 0))
+        except (ValueError, TypeError):
+            return None
 
     @property
     def native_value(self) -> str | None:
         """Return boiler state."""
-        zk_data = _get_param_data(self.coordinator.data, "ZK")
-        if not zk_data:
-            return None
+        zk = self._zk()
+        if zk is None:
+            # ZK missing, or present but not a number
+            if self._profile.unknown_state_as_number or not _get_param_data(
+                self.coordinator.data, "ZK"
+            ):
+                return None
+            return self._profile.state_name(-1, self._language)
 
-        try:
-            state_idx = int(zk_data.get("value", 0))
-            if 0 <= state_idx < len(self._attr_options):
-                return self._attr_options[state_idx]
-        except (ValueError, TypeError):
-            pass
+        name = self._profile.state_name(zk, self._language)
+        # Unnamed states ("ZK 5") are added on the fly so the ENUM stays valid
+        if name not in self._attr_options:
+            self._attr_options.append(name)
+        return name
 
-        return "Unbekannt" if self._language.upper() == "DE" else "Unknown"
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        """Expose the raw ZK value, which helps naming new states."""
+        return {"zk": self._zk()}
 
     @property
     def icon(self) -> str:
         """Return icon based on state."""
-        zk_data = _get_param_data(self.coordinator.data, "ZK")
-        if zk_data:
-            try:
-                state_idx = int(zk_data.get("value", 0))
-                if state_idx in [6, 7]:  # Transition to FF or Full firing
-                    return "mdi:fireplace"
-            except (ValueError, TypeError):
-                pass
+        zk = self._zk()
+        if zk is not None and zk in self._profile.firing_states:
+            return "mdi:fireplace"
         return "mdi:fireplace-off"
 
 
@@ -345,8 +356,9 @@ class HargassnerErrorSensor(HargassnerBaseSensor):
         self._attr_name = "Operation Status" if language.upper() == "EN" else "Betriebsstatus"
         self._attr_unique_id = f"{entry.entry_id}_operation"
         self._language = language
+        self._profile = profile_for_entry(entry)
         self._attr_options = ["OK"] + [
-            err[language.lower()] for err in ERROR_CODES.values()
+            err[language.lower()] for err in self._profile.error_codes.values()
         ]
 
     @property
@@ -365,9 +377,9 @@ class HargassnerErrorSensor(HargassnerBaseSensor):
             return "OK"
 
         # Error is present - look up description
-        error_info = ERROR_CODES.get(error_code)
-        if error_info:
-            return error_info[self._language.lower()]
+        error_text = self._profile.error_name(error_code, self._language)
+        if error_text:
+            return error_text
 
         # Unknown error code - add to options dynamically for ENUM compatibility
         lang = self._language.lower()
@@ -483,4 +495,74 @@ class HargassnerEnergySensor(HargassnerBaseSensor):
             "pellet_energy_kwh_per_kg": pellet_energy,
             "efficiency_percent": efficiency,
             "calculation": f"{pellet_energy} kWh/kg × {efficiency}% efficiency",
+        }
+
+
+class HargassnerBufferEnergySensor(HargassnerBaseSensor):
+    """Heat stored in the buffer tank (log wood boilers).
+
+    kWh above the configured reference temperature, from the mean of the three
+    buffer sensors and the buffer volume. Rises while the boiler charges the
+    buffer and falls while the house draws from it.
+    """
+
+    _attr_device_class = SensorDeviceClass.ENERGY_STORAGE
+    _attr_state_class = SensorStateClass.MEASUREMENT
+    _attr_native_unit_of_measurement = UnitOfEnergy.KILO_WATT_HOUR
+    _attr_suggested_display_precision = 1
+    _attr_icon = "mdi:heat-wave"
+
+    _SENSORS = ("TPo", "TPm", "TPu")
+
+    def __init__(
+        self,
+        coordinator: HargassnerDataUpdateCoordinator,
+        entry: ConfigEntry,
+        language: str,
+    ) -> None:
+        """Initialize buffer energy sensor."""
+        super().__init__(coordinator, entry)
+        self._attr_name = (
+            "Buffer Stored Energy" if language.upper() == "EN" else "Puffer Energieinhalt"
+        )
+        # New unique ID on purpose: this is a stored-energy measurement, not the
+        # pellet sensor's ever-increasing total, so it must not inherit its
+        # long-term statistics.
+        self._attr_unique_id = f"{entry.entry_id}_buffer_energy"
+        self._entry = entry
+
+    def _temperatures(self) -> list[float] | None:
+        temps: list[float] = []
+        for key in self._SENSORS:
+            data = _get_param_data(self.coordinator.data, key)
+            if not data:
+                return None
+            try:
+                temps.append(float(data.get("value")))
+            except (ValueError, TypeError):
+                return None
+        return temps
+
+    @property
+    def native_value(self) -> float | None:
+        """Return stored energy in kWh."""
+        temps = self._temperatures()
+        if temps is None:
+            return None
+        volume = self._entry.data.get(CONF_BUFFER_VOLUME, DEFAULT_BUFFER_VOLUME)
+        reference = self._entry.data.get(CONF_BUFFER_REFERENCE, DEFAULT_BUFFER_REFERENCE)
+        return round(buffer_stored_energy_kwh(temps, volume, reference), 2)
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        """Return the inputs of the calculation."""
+        temps = self._temperatures()
+        volume = self._entry.data.get(CONF_BUFFER_VOLUME, DEFAULT_BUFFER_VOLUME)
+        reference = self._entry.data.get(CONF_BUFFER_REFERENCE, DEFAULT_BUFFER_REFERENCE)
+        return {
+            "buffer_volume_l": volume,
+            "reference_temperature_c": reference,
+            "mean_buffer_temperature_c": round(sum(temps) / len(temps), 1) if temps else None,
+            "kwh_per_kelvin": round(volume * 1.163 / 1000.0, 3),
+            "calculation": f"{volume} l × 1.163 Wh/(l·K) × (mean buffer temperature − {reference} °C)",
         }

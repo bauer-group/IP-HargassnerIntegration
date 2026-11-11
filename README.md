@@ -1,7 +1,7 @@
 <div align="center">
   <img src="custom_components/bauergroup_hargassnerintegration/icon.png" alt="Hargassner Integration Logo" width="200"/>
 
-  # Hargassner Pellet Boiler Integration
+  # Hargassner Boiler Integration
   ### for Home Assistant
 
   [![Home Assistant](https://img.shields.io/badge/Home%20Assistant-Compatible-blue?style=for-the-badge&logo=home-assistant)](https://www.home-assistant.io/)
@@ -13,7 +13,7 @@
   [![GitHub Issues](https://img.shields.io/github/issues/bauer-group/IP-HargassnerIntegration?style=for-the-badge)](https://github.com/bauer-group/IP-HargassnerIntegration/issues)
   [![GitHub Stars](https://img.shields.io/github/stars/bauer-group/IP-HargassnerIntegration?style=for-the-badge)](https://github.com/bauer-group/IP-HargassnerIntegration/stargazers)
 
-  **Modern, professional Home Assistant integration for Hargassner pellet boilers with real-time telnet monitoring.**
+  **Modern, professional Home Assistant integration for Hargassner pellet and log-wood boilers with real-time telnet monitoring.**
 
   [Features](#-features) • [Screenshots](#-screenshots) • [Installation](#-installation) • [Configuration](#️-configuration) • [Documentation](#-documentation) • [Support](#support)
 </div>
@@ -27,8 +27,10 @@
 - 🔒 **Thread-safe** async telnet client with background processing
 - 🛡️ **Robust error handling** with custom exception types
 - 🎛️ **GUI configuration** via Home Assistant Config Flow
+- 🪵 **Pellet and log-wood boilers**: separate profiles for each family, each with its own boiler-state and error-code tables and sensor set
 - 🔧 **Firmware support** for V14_1HAR_q1 (extensible architecture)
 - ⚡ **Energy Dashboard** integration with automatic kWh calculation
+- 🔋 **Buffer stored-energy sensor** (log-wood): live kWh estimate from the buffer-stack temperatures
 - 🌍 **Bilingual** sensor names and states (EN/DE)
 - 📊 **Flexible sensor sets**: Standard (26 sensors) or Full (228 sensors)
 - 🔌 **Local polling** - no cloud dependency
@@ -58,6 +60,8 @@
 
 ## 🔥 Supported Models
 
+### Pellet boilers
+
 | Model | Firmware | Status |
 |-------|----------|--------|
 | Nano-PK 20 | V14_1HAR_q1 | ✅ Fully tested |
@@ -67,6 +71,18 @@
 | HSV/CL 9-60KW | V14_0d | 🧪 Community tested (contributed by [@tk79](https://github.com/tk79)) |
 | Classic Lambda 40L-60L | V14_0m5 | 🧪 Community tested (contributed by [@philippe44](https://github.com/philippe44)) |
 | Nano.2(.3) 15 + Aux. buffer/AUP | V14_1HAR_q_nano2_zuspuf_aup3 | 🧪 Community tested (contributed by [@pschimik](https://github.com/pschimik)) |
+
+### Log-wood boilers
+
+| Model | Firmware | Status |
+|-------|----------|--------|
+| HV20, HW 2.0 | V10_2HAR_n2 | 🧪 Community tested (contributed by [@lumpenpancho](https://github.com/lumpenpancho)) |
+| HV20, HW 2.0 (with RSC option) | V10_2HAR_p | 🧪 Community tested (contributed by [@lumpenpancho](https://github.com/lumpenpancho)) |
+
+Log-wood boilers get their own boiler-state (ZK) and error-code tables, their own standard sensor set (no pellet-only sensors), and a buffer stored-energy sensor computed from the buffer-stack temperatures. Pick "Log wood" as the boiler type in the config flow to use them.
+
+| Other | | |
+|-------|----------|--------|
 | Other Hargassner models | Custom | ⚠️ Requires firmware template |
 
 > **Note:** Additional firmware versions can be easily added via XML templates. See [Adding Firmware Support](docs/ADDING_FIRMWARE.md) (EN) or [Neue Firmware hinzufügen](docs/ADDING_FIRMWARE_DE.md) (DE) for details.
@@ -106,13 +122,16 @@ Then restart Home Assistant.
 
 | Field | Description | Example |
 |-------|-------------|---------|
+| **Boiler Type** | Pellet or Log wood | `Pellet` |
 | **Host** | IP address of boiler | `192.168.1.100` |
-| **Firmware** | Boiler firmware version | `V14_1HAR_q1` |
+| **Firmware** | Boiler firmware version (options depend on boiler type) | `V14_1HAR_q1` |
 | **Device Name** | Friendly name | `Hargassner` |
 | **Language** | UI language (EN/DE) | `DE` |
 | **Sensor Set** | STANDARD or FULL | `FULL` |
-| **Pellet Energy** | Energy content (kWh/kg) | `4.8` (default) |
-| **Efficiency** | Boiler efficiency (%) | `90` (default) |
+| **Pellet Energy** *(pellet only)* | Energy content (kWh/kg) | `4.8` (default) |
+| **Efficiency** *(pellet only)* | Boiler efficiency (%) | `90` (default) |
+| **Buffer Volume** *(log wood only)* | Buffer tank volume (litres) | `1600` (default) |
+| **Buffer Reference Temperature** *(log wood only)* | Temperature below which the buffer holds no usable heat | `30 °C` (default) |
 
 ### Sensor Sets Comparison
 
@@ -220,6 +239,19 @@ To adjust these values:
 1. Go to **Settings** → **Devices & Services**
 2. Find your Hargassner integration
 3. Click **Configure** → Adjust values as needed
+
+### Buffer Stored Energy (Log Wood)
+
+Log-wood boilers also get a **Puffer Energieinhalt** (Buffer Stored Energy) sensor, in kWh:
+
+```
+Energy (kWh) = Buffer Volume (l) × 1.163 Wh/(l·K) × (mean buffer temperature − Reference °C) / 1000
+```
+
+- The mean buffer temperature is the average of the top, middle, and bottom buffer-stack sensors (TPo/TPm/TPu).
+- 1.163 Wh/(l·K) is water's specific heat capacity.
+- Below the reference temperature, the buffer is treated as holding zero usable heat (the sensor never goes negative).
+- **Buffer Volume** and **Buffer Reference Temperature** are configurable in the integration options (defaults: 1600 l, 30 °C).
 
 ## 📚 Documentation
 

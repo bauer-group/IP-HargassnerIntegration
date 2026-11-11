@@ -43,7 +43,23 @@ NANOPKPLUS_CAPTURE = (
 )
 NANOPKPLUS_FIRMWARE = "V14_1HAR_q1_nanopkplus"
 
+# A verbatim telnet line from JJ's own HV20, captured 12 Oct 2026 22:54 local,
+# a few hours after an over-the-air update to V10.2HAR.p. The boiler's own
+# display read Warmwasser 53.6 degC / Warmwasser Soll 59.0 degC at the time -
+# see the V10_2HAR_p template comment in firmware_templates.py for how that
+# pins TB1/TBs_1 at ids 75/76 rather than the old template's 69/70.
+V10_2HAR_P_CAPTURE = (
+    "pm 1 0.4 0 49.0 80 47.7 67 47.2 0 0 0 47.7 41.4 40.9 13 0 43.7 0 3 0 1 0 0 "
+    "0.00 0.00 2 53.8 30 36 -20.0 -20.0 60.0 -20.0 0.0 59.0 50.0 100.0 121.0 69 "
+    "0.0 64 64 3 0 0 -20.0 0.0 20.0 20.0 0 1 0 120.0 0.0 20.0 20.0 0 1 0 120.0 "
+    "0.0 20.0 20.0 0 1 0 -20.0 0.0 20.0 20.0 0 1 0 -20.0 0.0 53.6 59.0 1 1 -20.0 "
+    "0.0 0.0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.00 406 20 0 0 0 0 0 0"
+)
+V10_2HAR_P_FIRMWARE = "V10_2HAR_p"
+
 EXPECTED_LENGTHS = {
+    "V10_2HAR_n2": 101,  # HV20: 93 analog + 8 digital words (live stream, not DAQ's 99)
+    "V10_2HAR_p": 107,  # HV20 on V10.2HAR.p: +6 values from the "RSC" option
     "V14_0HAR_q": 120,
     "V14_0d": 171,
     "V14_0m5": 154,
@@ -383,6 +399,40 @@ def test_nanopkplus_matches_manufacturer_signatures():
     # Wasserdruck is the last analog channel and the only two-decimal value there
     assert geometry.analog[geometry.analog_count - 1][0] == "Wasserdruck"
     assert at["Wasserdruck"] == "0.00"
+
+
+def test_v10_2har_p_fixes_the_warmwasser_misalignment():
+    """The firmware-update channel shift no longer sends Warmwasser to 20.0/0.
+
+    Before this template existed, selecting V10_2HAR_n2 against a boiler
+    actually running V10.2HAR.p silently read TB1/TBs_1 from the wrong
+    position (a stale -looking 20.0/0) instead of the real reading. This
+    pins the fix against the exact capture that exposed the bug.
+    """
+    parser = HargassnerMessageParser(V10_2HAR_P_FIRMWARE)
+    geometry = build_geometry(V10_2HAR_P_FIRMWARE)
+
+    assert len(V10_2HAR_P_CAPTURE.split()) - 1 == parser.expected_length == 107
+
+    parsed = parser.parse_message(V10_2HAR_P_CAPTURE)
+    assert parsed is not None
+    assert [p.name for p in parser.parameters if p.name not in parsed] == []
+
+    # Readings confirmed against the boiler's own display at capture time
+    assert parsed["TB1"]["value"] == 53.6
+    assert parsed["TBs_1"]["value"] == 59.0
+    assert parsed["TK"]["value"] == 49.0
+    assert parsed["PufLad"]["value"] == 43.7
+
+    digital = [p for p in parser.parameters if p.is_digital]
+    assert len(digital) == len(geometry.digital_channels)
+    assert all(p.name in parsed for p in digital)
+
+
+def test_v10_2har_p_obeys_the_dop_formatting_rules():
+    """The reconstructed template's channel order agrees with the capture."""
+    geometry = build_geometry(V10_2HAR_P_FIRMWARE)
+    assert dop_violations(geometry, V10_2HAR_P_CAPTURE) == []
 
 
 def test_nanopkplus_digital_words_set_only_declared_bits():
