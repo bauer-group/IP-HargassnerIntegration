@@ -11,6 +11,14 @@ CONF_LANGUAGE: Final = "language"
 CONF_SENSOR_SET: Final = "sensor_set"
 CONF_PELLET_ENERGY: Final = "pellet_energy_kwh_per_kg"
 CONF_EFFICIENCY: Final = "efficiency_percent"
+CONF_BOILER_TYPE: Final = "boiler_type"
+CONF_BUFFER_VOLUME: Final = "buffer_volume_l"
+CONF_BUFFER_REFERENCE: Final = "buffer_reference_c"
+
+# Boiler types (families). Each has its own profile in boiler_profiles.py.
+BOILER_TYPE_PELLET: Final = "pellet"
+BOILER_TYPE_LOG_WOOD: Final = "log_wood"
+BOILER_TYPES: Final = [BOILER_TYPE_PELLET, BOILER_TYPE_LOG_WOOD]
 
 # Language options
 LANGUAGE_EN: Final = "EN"
@@ -401,8 +409,33 @@ FIRMWARE_VERSIONS: Final = [
     "V14_0d",  # HSV/CL 9-60KW (Issue #14)
     "V40_0HAR_az15",  # Nano 65
     "V14_1HAR_q_nano2_zuspuf_aup3",  # Nano.2(.3) 15 + auxiliary buffer/AUP (Issue #17)
+    "V10_2HAR_n2",  # HV20 HW 2.0 (log wood)
+    "V10_2HAR_p",  # HV20 HW 2.0, firmware V10.2HAR.p (log wood) - adds RSC option
 ]
+
+# Firmware templates per boiler type. Templates not listed under log wood are
+# pellet templates.
+LOG_WOOD_FIRMWARE_VERSIONS: Final = [
+    "V10_2HAR_n2",
+    "V10_2HAR_p",
+]
+
+
+def boiler_type_for_firmware(firmware: str | None) -> str:
+    """Return the boiler type a firmware template belongs to."""
+    if firmware in LOG_WOOD_FIRMWARE_VERSIONS:
+        return BOILER_TYPE_LOG_WOOD
+    return BOILER_TYPE_PELLET
+
+
+def firmware_versions_for(boiler_type: str) -> list[str]:
+    """Return the firmware templates offered for a boiler type."""
+    return [fw for fw in FIRMWARE_VERSIONS if boiler_type_for_firmware(fw) == boiler_type]
 
 # Energy calculation defaults
 DEFAULT_PELLET_ENERGY: Final = 4.8  # kWh per kg (Heizwert)
 DEFAULT_EFFICIENCY: Final = 90  # % Wirkungsgrad
+
+# Buffer energy defaults (log wood)
+DEFAULT_BUFFER_VOLUME: Final = 1600  # litres
+DEFAULT_BUFFER_REFERENCE: Final = 30  # °C - below this the buffer is treated as empty

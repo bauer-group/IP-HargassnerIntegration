@@ -27,6 +27,8 @@ HEX_WORD = re.compile(r"^[0-9A-F]+$")
 # Protocol lengths, pinned. A template edit that shifts one of these has to show up
 # as a deliberate diff here rather than silently changing what the boiler must send.
 EXPECTED_LENGTHS = {
+    "V10_2HAR_n2": 101,  # HV20: 93 analog + 8 digital words (live stream, not DAQ's 99)
+    "V10_2HAR_p": 107,  # HV20 on V10.2HAR.p: +6 values from the "RSC" option
     "V14_0HAR_q": 120,
     "V14_0d": 171,
     "V14_0m5": 154,

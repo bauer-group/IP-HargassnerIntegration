@@ -2,8 +2,18 @@
   "config": {
     "step": {
       "user": {
-        "title": "Hargassner Pelletkessel",
-        "description": "Konfigurieren Sie die Verbindung zu Ihrem Hargassner Pelletkessel",
+        "title": "Hargassner Kessel",
+        "description": "Welche Art von Hargassner Kessel möchten Sie verbinden?",
+        "data": {
+          "boiler_type": "Kesseltyp"
+        },
+        "data_description": {
+          "boiler_type": "Bestimmt, welche Firmware-Templates, Sensoren, Zustandsnamen, Störungstexte und welche Energieberechnung angeboten werden."
+        }
+      },
+      "connection": {
+        "title": "Hargassner Kessel",
+        "description": "Konfigurieren Sie die Verbindung zu Ihrem Kessel",
         "data": {
           "host": "IP-Adresse oder Hostname",
           "firmware": "Firmware-Version",
@@ -11,11 +21,15 @@
           "language": "Sprache",
           "sensor_set": "Sensor-Set",
           "pellet_energy_kwh_per_kg": "Heizwert Pellets (kWh/kg)",
-          "efficiency_percent": "Wirkungsgrad (%)"
+          "efficiency_percent": "Wirkungsgrad (%)",
+          "buffer_volume_l": "Puffervolumen (l)",
+          "buffer_reference_c": "Puffer-Bezugstemperatur (°C)"
         },
         "data_description": {
           "pellet_energy_kwh_per_kg": "Heizwert der Pellets in kWh pro kg (Standard: 4.8)",
-          "efficiency_percent": "Wirkungsgrad der Anlage in Prozent (Standard: 90)"
+          "efficiency_percent": "Wirkungsgrad der Anlage in Prozent (Standard: 90)",
+          "buffer_volume_l": "Kapazität des Pufferspeichers in Litern, wie in der Weboberfläche des Kessels angezeigt (Standard: 1600)",
+          "buffer_reference_c": "Gespeicherte Energie wird oberhalb dieser Temperatur gezählt; darunter gilt der Puffer als leer (Standard: 30)"
         }
       }
     },
@@ -37,12 +51,16 @@
           "language": "Sprache",
           "sensor_set": "Sensor-Set",
           "pellet_energy_kwh_per_kg": "Heizwert Pellets (kWh/kg)",
-          "efficiency_percent": "Wirkungsgrad (%)"
+          "efficiency_percent": "Wirkungsgrad (%)",
+          "buffer_volume_l": "Puffervolumen (l)",
+          "buffer_reference_c": "Puffer-Bezugstemperatur (°C)"
         },
         "data_description": {
           "firmware": "Firmware-Template deines Kessels. Eine Änderung liest den Telnet-Stream mit einem anderen Parameter-Layout - Entitäten können hinzukommen, wegfallen oder umbenannt werden.",
           "pellet_energy_kwh_per_kg": "Heizwert der Pellets in kWh pro kg (Standard: 4.8)",
-          "efficiency_percent": "Wirkungsgrad der Anlage in Prozent (Standard: 90)"
+          "efficiency_percent": "Wirkungsgrad der Anlage in Prozent (Standard: 90)",
+          "buffer_volume_l": "Kapazität des Pufferspeichers in Litern (Standard: 1600)",
+          "buffer_reference_c": "Gespeicherte Energie wird oberhalb dieser Temperatur gezählt (Standard: 30)"
         }
       }
     }

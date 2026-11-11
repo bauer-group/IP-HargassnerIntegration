@@ -2,8 +2,18 @@
   "config": {
     "step": {
       "user": {
-        "title": "Hargassner Pellet Boiler",
-        "description": "Configure your Hargassner pellet boiler connection",
+        "title": "Hargassner Boiler",
+        "description": "Which kind of Hargassner boiler do you want to connect?",
+        "data": {
+          "boiler_type": "Boiler type"
+        },
+        "data_description": {
+          "boiler_type": "Decides which firmware templates, sensors, state names, fault texts and energy calculation are offered."
+        }
+      },
+      "connection": {
+        "title": "Hargassner Boiler",
+        "description": "Configure the connection to your boiler",
         "data": {
           "host": "IP Address or Hostname",
           "firmware": "Firmware Version",
@@ -11,11 +21,15 @@
           "language": "Language",
           "sensor_set": "Sensor Set",
           "pellet_energy_kwh_per_kg": "Pellet Energy (kWh/kg)",
-          "efficiency_percent": "Efficiency (%)"
+          "efficiency_percent": "Efficiency (%)",
+          "buffer_volume_l": "Buffer Volume (l)",
+          "buffer_reference_c": "Buffer Reference Temperature (°C)"
         },
         "data_description": {
           "pellet_energy_kwh_per_kg": "Energy content of pellets in kWh per kg (Default: 4.8)",
-          "efficiency_percent": "Boiler efficiency in percent (Default: 90)"
+          "efficiency_percent": "Boiler efficiency in percent (Default: 90)",
+          "buffer_volume_l": "Capacity of the buffer tank in litres, as shown on the boiler's web interface (Default: 1600)",
+          "buffer_reference_c": "Stored energy is counted above this temperature; below it the buffer counts as empty (Default: 30)"
         }
       }
     },
@@ -37,12 +51,16 @@
           "language": "Language",
           "sensor_set": "Sensor Set",
           "pellet_energy_kwh_per_kg": "Pellet Energy (kWh/kg)",
-          "efficiency_percent": "Efficiency (%)"
+          "efficiency_percent": "Efficiency (%)",
+          "buffer_volume_l": "Buffer Volume (l)",
+          "buffer_reference_c": "Buffer Reference Temperature (°C)"
         },
         "data_description": {
           "firmware": "Firmware template of your boiler. Changing it re-reads the telnet stream with a different parameter layout - entities may be added, removed or renamed.",
           "pellet_energy_kwh_per_kg": "Energy content of pellets in kWh per kg (Default: 4.8)",
-          "efficiency_percent": "Boiler efficiency in percent (Default: 90)"
+          "efficiency_percent": "Boiler efficiency in percent (Default: 90)",
+          "buffer_volume_l": "Capacity of the buffer tank in litres (Default: 1600)",
+          "buffer_reference_c": "Stored energy is counted above this temperature (Default: 30)"
         }
       }
     }

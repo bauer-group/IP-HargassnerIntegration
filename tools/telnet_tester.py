@@ -23,14 +23,25 @@ from typing import Optional
 class TelnetTester:
     """Test telnet connection to Hargassner boiler."""
 
-    def __init__(self, host: str, port: int = 23, timeout: float = 10.0):
+    def __init__(
+        self,
+        host: str,
+        port: int = 23,
+        timeout: float = 10.0,
+        truncate: int = 0,
+        log_path: Optional[str] = None,
+    ):
         """Initialize tester.
 
         Args:
             host: Boiler IP address or hostname
             port: Telnet port (default: 23)
             timeout: Connection timeout in seconds
+            truncate: Shorten displayed messages to this many characters (0 = full)
+            log_path: Append every pm message with a timestamp to this file
         """
+        self.truncate = truncate
+        self.log_path = log_path
         self.host = host
         self.port = port
         self.timeout = timeout
@@ -147,10 +158,16 @@ class TelnetTester:
                             parts = text.split()
                             value_count = len(parts) - 1  # Subtract 'pm' prefix
 
-                            # Truncate long messages for display
+                            # Full message by default - the values that matter
+                            # are often at the end of the line
                             display_text = text
-                            if len(text) > 100:
-                                display_text = text[:100] + "..."
+                            if self.truncate and len(text) > self.truncate:
+                                display_text = text[: self.truncate] + "..."
+
+                            if self.log_path:
+                                stamp = datetime.now().strftime("%Y-%m-%d_%H:%M:%S")
+                                with open(self.log_path, "a", encoding="utf-8") as log:
+                                    log.write(f"{stamp} {text}\n")
 
                             print(f"[{timestamp}] PM Message #{self.pm_message_count} ({value_count} values)")
                             print(f"  {display_text}")
@@ -195,6 +212,7 @@ Examples:
   python telnet_tester.py 192.168.1.100 --count 10
   python telnet_tester.py 192.168.1.100 --duration 30
   python telnet_tester.py 192.168.1.100 --timeout 5 --count 20
+  python telnet_tester.py 192.168.1.100 --duration 3600 --log capture.txt
         """,
     )
 
@@ -222,10 +240,22 @@ Examples:
         help="Duration to run in seconds before stopping",
     )
 
+    parser.add_argument(
+        "--truncate",
+        type=int,
+        default=0,
+        help="Shorten displayed messages to N characters (default: 0 = show full message)",
+    )
+    parser.add_argument(
+        "--log",
+        metavar="FILE",
+        help="Append every pm message with a timestamp to FILE (same line format as DAQ files)",
+    )
+
     args = parser.parse_args()
 
     # Create tester
-    tester = TelnetTester(args.host, args.port, args.timeout)
+    tester = TelnetTester(args.host, args.port, args.timeout, args.truncate, args.log)
 
     # Connect
     if not tester.connect():
