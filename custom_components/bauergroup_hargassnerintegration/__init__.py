@@ -62,13 +62,21 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     # Unload platforms
     if unload_ok := await hass.config_entries.async_unload_platforms(entry, PLATFORMS):
-        coordinator: HargassnerDataUpdateCoordinator = hass.data[DOMAIN].pop(entry.entry_id)
-        await coordinator.telnet_client.async_stop()
+        coordinator: HargassnerDataUpdateCoordinator | None = hass.data.get(DOMAIN, {}).pop(
+            entry.entry_id, None
+        )
+        if coordinator is not None:
+            await coordinator.telnet_client.async_stop()
 
     return unload_ok
 
 
 async def async_reload_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
-    """Reload config entry."""
-    await async_unload_entry(hass, entry)
-    await async_setup_entry(hass, entry)
+    """Reload config entry through Home Assistant.
+
+    Calling async_unload_entry/async_setup_entry directly bypasses the entry's
+    state machine: async_config_entry_first_refresh then runs on a LOADED entry
+    and fails, and the options flow fires this listener twice (data + options),
+    so the second unload hit a KeyError and left the entry in failed_unload.
+    """
+    await hass.config_entries.async_reload(entry.entry_id)
