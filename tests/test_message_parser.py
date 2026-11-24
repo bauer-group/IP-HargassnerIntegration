@@ -259,8 +259,11 @@ def dop_violations(geometry, message):
 
 
 def manufacturer_daq_bytes():
-    """The manufacturer's own recording, shipped with the repository."""
-    return (REPO_ROOT / "docs" / "private_firmware_samples" / "DAQ00001.DAQ").read_bytes()
+    """The manufacturer's own recording - gitignored, so only on maintainer machines."""
+    path = REPO_ROOT / "docs" / "private_firmware_samples" / "DAQ00001.DAQ"
+    if not path.exists():
+        pytest.skip("private factory DAQ sample not present (gitignored)")
+    return path.read_bytes()
 
 
 def channel_signature(xml):
