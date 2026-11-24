@@ -147,13 +147,10 @@ class TelnetTester:
                             parts = text.split()
                             value_count = len(parts) - 1  # Subtract 'pm' prefix
 
-                            # Truncate long messages for display
-                            display_text = text
-                            if len(text) > 100:
-                                display_text = text[:100] + "..."
-
+                            # Print the full line: template work needs every value,
+                            # and the ones that matter are often at the end
                             print(f"[{timestamp}] PM Message #{self.pm_message_count} ({value_count} values)")
-                            print(f"  {display_text}")
+                            print(f"  {text}")
                         else:
                             print(f"[{timestamp}] Other: {text}")
 
