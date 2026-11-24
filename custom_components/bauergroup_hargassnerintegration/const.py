@@ -401,6 +401,7 @@ FIRMWARE_VERSIONS: Final = [
     "V14_0d",  # HSV/CL 9-60KW (Issue #14)
     "V40_0HAR_az15",  # Nano 65
     "V14_1HAR_q_nano2_zuspuf_aup3",  # Nano.2(.3) 15 + auxiliary buffer/AUP (Issue #17)
+    "V10_2HEI_o1",  # Neo-MHV 35, V10.2HEI.o1 (Issue from DAQ log)
 ]
 
 # Energy calculation defaults
