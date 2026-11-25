@@ -36,6 +36,7 @@ EXPECTED_LENGTHS = {
     "V14_1HAR_q1_solar": 140,
     "V14_1HAR_q_nano2_zuspuf_aup3": 155,
     "V40_0HAR_az15": 157,
+    "V30_1HAR_f": 167,
 }
 
 

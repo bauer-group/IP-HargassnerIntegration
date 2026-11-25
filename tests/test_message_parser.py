@@ -43,6 +43,19 @@ NANOPKPLUS_CAPTURE = (
 )
 NANOPKPLUS_FIRMWARE = "V14_1HAR_q1_nanopkplus"
 
+# Telnet lines from an Eco-HK 70 on V30.1HAR.f while firing, six spread over a
+# 75-line capture. 167 values each: two more than the channel list on the
+# boiler's SD card, see the comment on the template.
+ECOHK70_CAPTURE = (
+    "pm 5 8.8 8.3 79.6 78 72.1 68.5 70 70 35 43 32 32 58 157 55 20 22 0 0 77.5 77.3 62.5 100 70 69 3 78 100.1 370.0 -20 22 43.3 100 100 30 30 100 -20 -20 3 0 65 0 0 0 0 0 0 0 0 35.0 10.0 86.7 1 216336.8 7.96 12.88 625 11.1 2 1 0 0 20 20 0 77.5 0.00 0.00 18.0 38 2 140 -0.4 -0.5 95.9 1 3 3 0 0 0 -20.0 0.0 20.0 20.0 0 1 0 57.0 57.4 20.0 22.0 1 1 23 60.9 60.0 20.0 26.0 1 1 23 11.1 7.0 17.0 20.0 6 4 61 65.9 65.0 18.5 27.5 1 1 23 -20.0 0.0 20.0 20.0 0 1 0 -20.0 0.0 77.0 0.0 0 0 120.0 0.0 0 -20.0 0.0 0.0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 120.0 120.0 120.0 120.0 120.0 120.0 120E 1 1248 0 3000201F FC0E0003 0 100000",
+    "pm 5 8.2 8.3 79.6 78 72.1 68.5 70 70 35 44 32 33 57 166 56 21 18 0 0 77.5 77.3 62.7 100 70 69 3 78 100.1 367.9 -20 22 43.6 100 100 30 30 100 -20 -20 3 0 65 785 0 0 0 0 0 0 0 35.0 10.0 86.8 1 216336.9 8.03 12.86 624 12.4 2 1 0 0 20 20 0 77.5 0.00 0.00 18.0 38 2 140 -0.1 -0.5 96.1 1 3 3 0 0 0 -20.0 0.0 20.0 20.0 0 1 0 57.0 57.4 20.0 22.0 1 1 23 60.9 60.0 20.0 26.0 1 1 23 11.1 7.0 17.0 20.0 6 4 61 65.9 65.0 18.5 27.5 1 1 23 -20.0 0.0 20.0 20.0 0 1 0 -20.0 0.0 77.0 0.0 0 0 120.0 0.0 0 -20.0 0.0 0.0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 120.0 120.0 120.0 120.0 120.0 120.0 121E 1 1248 0 3000201F FC0E0003 0 100000",
+    "pm 5 7.8 8.3 79.6 78 72.1 68.5 71 70 35 43 32 32 56 163 58 18 16 0 0 77.5 77.3 62.7 100 70 69 3 78 99.8 367.4 -20 22 43.3 100 100 30 30 100 -20 -20 3 0 65 0 0 0 0 0 0 0 0 35.0 10.0 86.9 1 216337.0 7.96 12.88 625 13.4 2 1 0 0 20 20 0 77.5 0.00 0.00 18.0 38 2 140 -0.4 -0.5 96.2 1 3 3 0 0 0 -20.0 0.0 20.0 20.0 0 1 0 57.0 57.4 20.0 22.0 1 1 23 60.9 60.0 20.0 26.0 1 1 23 11.1 7.0 17.0 20.0 6 4 61 65.9 65.0 18.5 27.5 1 1 23 -20.0 0.0 20.0 20.0 0 1 0 -20.0 0.0 77.0 0.0 0 0 120.0 0.0 0 -20.0 0.0 0.0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 120.0 120.0 120.0 120.0 120.0 120.0 120E 1 1248 0 3000201F FC0E0003 0 100000",
+    "pm 5 8.1 8.3 79.6 78 72.1 68.5 66 70 42 43 32 32 55 163 58 17 17 0 0 77.5 77.3 62.7 100 70 69 3 78 100.1 365.7 -20 22 43.3 100 100 30 30 100 -20 -20 3 0 65 793 21 0 0 0 0 0 0 42.0 10.0 87.0 1 216337.1 8.04 12.86 624 12.6 2 1 0 0 20 20 0 77.5 0.00 0.00 18.0 38 2 140 -0.4 -0.5 96.1 1 3 3 0 0 0 -20.0 0.0 20.0 20.0 0 1 0 57.0 57.4 20.0 22.0 1 1 23 60.9 60.0 20.0 26.0 1 1 23 11.1 7.0 17.0 20.0 6 4 61 65.9 65.0 18.5 27.5 1 1 23 -20.0 0.0 20.0 20.0 0 1 0 -20.0 0.0 77.0 0.0 0 0 120.0 0.0 0 -20.0 0.0 0.0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 120.0 120.0 120.0 120.0 120.0 120.0 121E 1 1248 0 3000201F FC0E0003 0 100000",
+    "pm 5 8.2 8.3 79.6 78 72.1 68.5 63 70 45 43 32 32 57 168 60 17 17 0 0 77.5 77.3 62.7 100 70 69 3 78 99.8 365.7 -20 22 43.3 100 100 30 30 100 -20 -20 3 0 65 3 0 0 0 0 0 0 0 45.0 10.0 87.1 1 216337.2 7.96 12.87 624 12.4 2 1 0 0 20 20 0 77.5 0.00 0.00 18.0 38 2 140 -0.4 -0.5 96.1 1 3 3 0 0 0 -20.0 0.0 20.0 20.0 0 1 0 57.0 57.4 20.0 22.0 1 1 23 60.9 60.0 20.0 26.0 1 1 23 11.1 7.0 17.0 20.0 6 4 61 65.9 65.0 18.5 27.5 1 1 23 -20.0 0.0 20.0 20.0 0 1 0 -20.0 0.0 77.3 0.0 0 0 120.0 0.0 0 -20.0 0.0 0.0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 120.0 120.0 120.0 120.0 120.0 120.0 120E 1 1248 0 3000201F FC0E0003 0 100000",
+    "pm 5 8.6 8.3 79.6 78 72.1 68.5 68 70 38 43 32 32 58 171 58 17 21 0 0 77.5 77.3 62.7 100 70 69 3 78 99.8 363.6 -20 22 43.3 100 100 30 30 100 -20 -20 3 0 65 789 862 0 0 0 0 0 0 38.0 10.0 87.2 1 216337.3 7.95 12.88 624 11.5 2 1 0 0 20 20 0 77.5 0.00 0.00 18.0 38 2 140 -0.4 -0.5 96.0 1 3 3 0 0 0 -20.0 0.0 20.0 20.0 0 1 0 57.0 57.4 20.0 22.0 1 1 23 60.9 60.0 20.0 26.0 1 1 23 11.1 7.0 17.0 20.0 6 4 61 65.9 65.0 18.5 27.5 1 1 23 -20.0 0.0 20.0 20.0 0 1 0 -20.0 0.0 77.3 0.0 0 0 120.0 0.0 0 -20.0 0.0 0.0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 120.0 120.0 120.0 120.0 120.0 120.0 120E 9 1248 0 3000201F FC0E0003 0 100000",
+)
+ECOHK70_FIRMWARE = "V30_1HAR_f"
+
 EXPECTED_LENGTHS = {
     "V14_0HAR_q": 120,
     "V14_0d": 171,
@@ -53,6 +66,7 @@ EXPECTED_LENGTHS = {
     "V14_1HAR_q1_solar": 140,
     "V14_1HAR_q_nano2_zuspuf_aup3": 155,
     "V40_0HAR_az15": 157,
+    "V30_1HAR_f": 167,
 }
 
 
@@ -405,3 +419,39 @@ def test_nanopkplus_digital_words_set_only_declared_bits():
             assert undeclared == 0, (
                 f"word {index} = {token!r} sets undeclared bits {undeclared:#x}"
             )
+
+
+def test_ecohk70_capture_parses_completely():
+    """Every captured line yields every parameter the template declares."""
+    parser = HargassnerMessageParser(ECOHK70_FIRMWARE)
+
+    assert parser.expected_length == 167
+
+    for message in ECOHK70_CAPTURE:
+        assert len(message.split()) - 1 == 167
+        parsed = parser.parse_message(message)
+        assert parsed is not None
+        assert [p.name for p in parser.parameters if p.name not in parsed] == []
+
+    parsed = parser.parse_message(ECOHK70_CAPTURE[0])
+
+    # Room set points the boiler's own parameters give for circuits 1 and 2
+    # (z4 = 22.0, z7 = 26.0 in the same SD-card file). Without the dummy1 shift
+    # these positions read 20.0 and 22.0.
+    assert parsed["TRs_1"]["value"] == 22.0
+    assert parsed["TRs_2"]["value"] == 26.0
+    # The placeholder sits before these, not among them: the card logs "3 3" here too
+    assert parsed["Programm HKM0"]["value"] == 3
+
+
+def test_ecohk70_capture_obeys_the_dop_formatting_rules():
+    """Only the unfitted ATÜ input breaks its dop, and it does so at any alignment.
+
+    ATÜ is declared dop='2' but prints the bare '-20' sentinel when no sensor is
+    fitted, so it cannot discriminate between layouts.
+    """
+    geometry = build_geometry(ECOHK70_FIRMWARE)
+
+    for message in ECOHK70_CAPTURE:
+        assert dop_violations(geometry, message) == ["ATÜ (id 30) dop='2' but '-20'"]
+
